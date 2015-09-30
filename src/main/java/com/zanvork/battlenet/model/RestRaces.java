@@ -3,9 +3,10 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.zanvork.guildhubv3.rest.model;
+package com.zanvork.battlenet.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.util.List;
 import lombok.Data;
 
 /**
@@ -15,9 +16,6 @@ import lombok.Data;
 
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class RestClass {
-    private long id;
-    private long mask;
-    private String powerType;
-    private String name;
+public class RestRaces {
+    private List<RestRace> races;
 }

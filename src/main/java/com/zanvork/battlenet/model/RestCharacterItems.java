@@ -1,4 +1,4 @@
-package com.zanvork.guildhubv3.rest.model;
+package com.zanvork.battlenet.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.HashMap;

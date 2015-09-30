@@ -7,6 +7,6 @@ import org.springframework.stereotype.Service;
  * @author zanvork
  */
 @Service
-public class UserService {
+public class UserService implements BackendService{
     
 }

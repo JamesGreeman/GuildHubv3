@@ -7,6 +7,6 @@ import org.springframework.stereotype.Service;
  * @author zanvork
  */
 @Service
-public class GuildService {
+public class GuildService implements BackendService{
     
 }

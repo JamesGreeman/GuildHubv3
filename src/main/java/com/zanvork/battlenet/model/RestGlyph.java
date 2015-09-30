@@ -1,4 +1,4 @@
-package com.zanvork.guildhubv3.rest.model;
+package com.zanvork.battlenet.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -6,10 +6,10 @@ import lombok.Data;
 
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class RestTalent {
+public class RestGlyph {
+    @JsonProperty(value="glyph")
     private long id;
-    private int tier;
-    @JsonProperty(value="column")
-    private int talentColumn;
-    private RestSpell spell;
+    private int item;
+    private String name;
+    private String icon;
 }
