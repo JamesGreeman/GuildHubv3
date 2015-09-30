@@ -1,0 +1,65 @@
+Data
+
+User
+	- long id		PK
+	- String userName	UK1 NN
+	- String email		UK2 NN
+	- String passwordHash
+
+UserToken
+	- long id		PK
+	- User user_FK		FK NN
+	- String tokenHash	NN
+
+Character
+	- long id		PK
+	- String name		UK1 NN
+	- Realm	realm		UK1 FK NN
+	- int averageItemLevel	
+	- Class class		FK NN
+	- Spec mainSpec		FK NN
+	- Spec offSpec		FK
+	- List<Item> items
+	- User owner		FK 
+	- Guild guild		FK
+
+Spec
+	- long id		PK
+	- Class class		UK1 FK NN
+	- String specName	UK1 NN
+
+Class
+	- long id		PK
+	- String className	NN
+
+Realm
+	- long id		PK
+	- String name		NN	
+	- String slug		UK1 NN
+	- Region region		UK1 NN {Enum}
+Team
+	- long id		PK
+	- List<TeamMember> members
+	- User owner		FK NN
+	- String name		UK1 NN
+	- Region region		UK1 NN {Enum}
+
+TeamMember
+	- long id		PK
+	- Team team		UK1 FK NN
+	- Character character	UK1 FK NN
+
+Guild
+	- long id		PK
+	- String name		UK1 NN
+	- Realm	realm		UK1 FK NN
+	- List<Character> members
+	- Character leader	FK NN
+	- User owner		FK 
+
+Item
+	- long id		PK
+	- long blizzardId	
+	- int itemLevel
+	- ItemSlot slot		UK1 NN	{Enum}
+	- Character character	UK1 FK NN
