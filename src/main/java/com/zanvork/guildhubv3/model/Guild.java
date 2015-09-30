@@ -1,5 +1,6 @@
 package com.zanvork.guildhubv3.model;
 
+import java.io.Serializable;
 import java.util.List;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -19,7 +20,7 @@ import lombok.Data;
 @Entity
 @Data
 @Table(name="guild", uniqueConstraints=@UniqueConstraint(columnNames={"name", "realm"}))
-public class Guild {
+public class Guild implements Serializable {
     @Id 
     @GeneratedValue      
     private long id;
