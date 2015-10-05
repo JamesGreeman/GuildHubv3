@@ -9,6 +9,8 @@ import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.ManyToOne;
+import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
 import lombok.Data;
 import lombok.ToString;
 
@@ -19,6 +21,7 @@ import lombok.ToString;
 @Entity
 @Data
 @ToString(exclude = {"character"})
+@Table(name="character_item", uniqueConstraints=@UniqueConstraint(columnNames={"slot", "character"}))
 public class CharacterItem implements Serializable {
     @Id
     @GeneratedValue
