@@ -2,10 +2,12 @@ package com.zanvork.guildhubv3.model;
 
 import java.io.Serializable;
 import java.util.List;
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
@@ -19,7 +21,7 @@ import lombok.Data;
  */
 @Entity
 @Data
-@Table(name="guild", uniqueConstraints=@UniqueConstraint(columnNames={"name", "realm"}))
+@Table(uniqueConstraints=@UniqueConstraint(columnNames={"name", "realm"}))
 public class Guild implements Serializable {
     @Id 
     @GeneratedValue      
@@ -29,16 +31,16 @@ public class Guild implements Serializable {
     private String name;
     
     @ManyToOne 
-    @Column(nullable = false)
+    @JoinColumn(nullable = false)
     private Realm realm;
     
-    @OneToMany(mappedBy = "guild")
-    private List<Character> members;
+    @OneToMany(mappedBy = "guild", cascade = CascadeType.ALL)
+    private List<WarcraftCharacter> members;
     
-    @OneToOne 
-    @Column(nullable = false)
-    private Character leader;
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(nullable = false)
+    private WarcraftCharacter leader;
     
-    @ManyToOne 
+    @ManyToOne
     private User owner;
 }

@@ -3,20 +3,21 @@ package com.zanvork.guildhubv3.services;
 import com.zanvork.battlenet.model.RestCharacter;
 import com.zanvork.battlenet.model.RestCharacterItems;
 import com.zanvork.battlenet.model.RestCharacterTalents;
+import com.zanvork.battlenet.model.RestItem;
 import com.zanvork.battlenet.service.WarcraftAPIService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.zanvork.guildhubv3.model.Character;
+import org.springframework.scheduling.annotation.Scheduled;
+import com.zanvork.guildhubv3.model.WarcraftCharacter;
 import com.zanvork.guildhubv3.model.CharacterItem;
 import com.zanvork.guildhubv3.model.CharacterSpec;
-import com.zanvork.guildhubv3.model.dao.CharacterDAO;
+import com.zanvork.guildhubv3.model.dao.CharacterItemDAO;
+import com.zanvork.guildhubv3.model.dao.WarcraftCharacterDAO;
 import com.zanvork.guildhubv3.model.enums.ItemSlots;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.springframework.scheduling.annotation.Scheduled;
-
 /**
  *
  * @author zanvork
@@ -33,12 +34,15 @@ public class CharacterService implements BackendService{
 
     //DAOs
     @Autowired
-    private CharacterDAO characterDAO;
+    private WarcraftCharacterDAO characterDAO;
+    @Autowired
+    private CharacterItemDAO characterItemDAO;
     
-    private Map<Long, Character> characters         =   new HashMap<>();
-    private Map<String, Character> charactersByName =   new HashMap<>();
+    private Map<Long, WarcraftCharacter> characters         =   new HashMap<>();
+    private Map<String, WarcraftCharacter> charactersByName =   new HashMap<>();
     
-    private final List<Character> charactersToSave  =   new ArrayList<>();
+    private final List<WarcraftCharacter> charactersToSave  =   new ArrayList<>();
+    private final List<CharacterItem> itemsToRemove         =   new ArrayList<>();
     
     private final Object 
             charactersLock          =   new Object(),
@@ -49,17 +53,19 @@ public class CharacterService implements BackendService{
      * @param id id of the character 
      * @return character object requested (null if does not exist)
      */
-    public Character getCharacter(long id){
+    public WarcraftCharacter getCharacter(long id){
         return characters.get(id);
     }
+    
     /**
      * Loads a character from the cache based on a unique key.
      * @param key
      * @return the character associated with the key
      */
-    public Character getCharacter(String key){
+    public WarcraftCharacter getCharacter(String key){
         return charactersByName.get(key);
     }
+    
     /**
      * Get a character from a name, realm and region.
      * Tries to load the specified character from the cache, if it does not exist
@@ -69,12 +75,9 @@ public class CharacterService implements BackendService{
      * @param region region the realm is in
      * @return character loaded or created
      */
-    public Character getCharacter(String name, String realm, String region){
-        String key          =   characterNameRealmRegionToKey(name, realm, region);
-        Character character =   getCharacter(key);
-        if (character == null || character.getId() < 1){
-            character   =   createCharacter(name, realm, region);
-        }
+    public WarcraftCharacter getCharacter(String name, String realm, String region){
+        String key                  =   characterNameRealmRegionToKey(name, realm, region);
+        WarcraftCharacter character =   getCharacter(key);
         return character;
     }
     
@@ -85,25 +88,53 @@ public class CharacterService implements BackendService{
      * @param region region the realm is in
      * @return the new character
      */
-    public Character createCharacter(String name, String realm, String region){
-        Character character =   null;
-         RestCharacter restCharacter =   apiService.getCharacter(region, realm, name);
-        if (restCharacter != null){
-            character   =   new Character();
-            character.setName(restCharacter.getName());
+    public WarcraftCharacter createCharacter(String name, String realm, String region){
+        WarcraftCharacter character =   null;
+        RestCharacter characterData =   apiService.getCharacter(region, realm, name);
+        if (characterData != null){
+            character   =   new WarcraftCharacter();
+            character.setName(characterData.getName());
             character.setRealm(dataService.getRealm(DataService.realmNameRegionToKey(realm, region)));
             
-            character.setCharacterClass(dataService.getCharacterClass(restCharacter.getCharClass()));
-            setCharacterSpec(character, restCharacter.getTalents());
-            
-            character.setAverageItemLevel(restCharacter.getItems().getAverageItemLevel());
-            setCharacterItems(character, restCharacter.getItems());
-            
-            character.setGuild(null);
-            character.setOwner(null);
-            charactersToSave.add(character);
+            updateCharacter(character, characterData);
         }
         return character;
+    }
+    
+    /**
+     * Updates a character from a name, region and realm.
+     * @param name name of the character.
+     * @param realm realm the character is on
+     * @param region region the realm is in
+     * @return the updated character
+     */
+    public WarcraftCharacter updateCharacter(String name, String realm, String region){
+        String key                  =   characterNameRealmRegionToKey(name, realm, region);
+        WarcraftCharacter character =   getCharacter(key);
+        RestCharacter characterData =   apiService.getCharacter(region, realm, name);
+        if (character != null && characterData != null){
+            updateCharacter(character, characterData);
+        }
+        return character;
+    }
+    
+    /**
+     * Updates character information from a RestCharacter object.
+     * @param character WarcraftCharacter to update
+     * @param characterData RestCharacter to load information from
+     */
+    private void updateCharacter(WarcraftCharacter character, RestCharacter characterData){
+        character.setCharacterClass(dataService.getCharacterClass(characterData.getCharClass()));
+        updateCharacterSpec(character, characterData.getTalents());
+
+        character.setAverageItemLevel(characterData.getItems().getAverageItemLevel());
+        setCharacterItems(character, characterData.getItems());
+
+        character.setGuild(null);
+        character.setOwner(null);
+        synchronized(charactersToSave){
+            charactersToSave.add(character);
+        }
     }
     
     /**
@@ -111,22 +142,22 @@ public class CharacterService implements BackendService{
      * @param character character object to set the specs on
      * @param talentsData talent data to read
      */
-    private void setCharacterSpec(Character character, List<RestCharacterTalents> talentsData){
+    private void updateCharacterSpec(WarcraftCharacter character, List<RestCharacterTalents> talentsData){
         long classId    =   character.getCharacterClass().getId();
         String[] specNames  =   new String[2];
         int mainSpecId  =   0;
         specNames[0]    =   talentsData.get(0).getSpec().getName();
         if (talentsData.size() > 1){
+            specNames[1]    =   talentsData.get(1).getSpec().getName();
             if (talentsData.get(1).isSelected()){
                 mainSpecId  =   1;
-                specNames[1]    =   talentsData.get(1).getSpec().getName();
-            }
-            CharacterSpec offSpec   =   dataService.getCharacterSpec(DataService.classIDSpecNameToKey(classId, specNames[1 - mainSpecId]));
+            } 
+            CharacterSpec offSpec   =   dataService.getCharacterSpec(classId, specNames[1 - mainSpecId]);
             character.setOffSpec(offSpec);
         } else {
             
         }
-        CharacterSpec mainSpec  =   dataService.getCharacterSpec(DataService.classIDSpecNameToKey(classId, specNames[mainSpecId]));
+        CharacterSpec mainSpec  =   dataService.getCharacterSpec(classId, specNames[mainSpecId]);
         character.setMainSpec(mainSpec);
     }
     
@@ -135,18 +166,36 @@ public class CharacterService implements BackendService{
      * @param character character object to set the items in
      * @param itemsData item data to read
      */
-    private void setCharacterItems(Character character, RestCharacterItems itemsData){
-        List<CharacterItem> items   =   new ArrayList<>();
-        itemsData.getItems().entrySet().stream().map((itemEntry) -> {
-            CharacterItem item  =   new CharacterItem();
-            item.setBlizzardID(itemEntry.getValue().getId());
-            item.setItemLevel(itemEntry.getValue().getItemLevel());
-            item.setSlot(ItemSlots.valueOf(itemEntry.getKey().toUpperCase()));
-            return item;
-        }).forEach((item) -> {
-            items.add(item);
+    private void setCharacterItems(WarcraftCharacter character, RestCharacterItems itemsData){
+        Map<ItemSlots, CharacterItem> characterItems    =   new HashMap<>();
+        List<CharacterItem> newItems                    =   new ArrayList<>();
+        character.getItems().stream().forEach((item) -> {
+            characterItems.put(item.getSlot(), item);
         });
-        character.setItems(items);
+        itemsData.getItems().entrySet().stream()
+                .filter(entry -> 
+                        entry.getValue() != null
+                )
+                .map(entry -> {
+                    ItemSlots itemSlot  =   ItemSlots.valueOf(entry.getKey().toUpperCase());
+                    RestItem itemData   =   entry.getValue();
+                    CharacterItem item  =   new CharacterItem();
+                    if (characterItems.containsKey(itemSlot)){
+                        item    =   characterItems.remove(itemSlot);
+                        item.setSlot(itemSlot);
+                    }
+                    item.setOwner(character);
+                    item.setBlizzardID(itemData.getId());
+                    item.setItemLevel(itemData.getItemLevel());
+                    return item;
+                })
+                .forEach(item -> {
+                    newItems.add(item);
+                });
+        character.setItems(newItems);
+        synchronized(itemsToRemove){
+            itemsToRemove.addAll(characterItems.values());
+        }
     }
     
     /**
@@ -154,7 +203,7 @@ public class CharacterService implements BackendService{
      * @param character
      * @return a unique key
      */
-    public static String characterToKey(Character character){
+    public static String characterToKey(WarcraftCharacter character){
         return characterNameRealmRegionToKey(character.getName(), character.getRealm().getName(), character.getRealm().getRegion().name());
     }
     
@@ -175,6 +224,10 @@ public class CharacterService implements BackendService{
     @Scheduled(fixedDelay=TIME_5_SECOND)
     @Override
     public void storeObjects(){
+        synchronized(itemsToRemove){
+            characterItemDAO.delete(itemsToRemove);
+            itemsToRemove.clear();
+        }
         synchronized(charactersToSave){
             characterDAO.save(charactersToSave);
             charactersToSave.clear();
@@ -195,8 +248,8 @@ public class CharacterService implements BackendService{
      * Uses Character's id as key
      */    
     private void loadCharactersFromBackend(){
-        Map<Long, Character> newCharacters          =   new HashMap<>();
-        Map<String, Character> newCharactersByName  =   new HashMap<>();
+        Map<Long, WarcraftCharacter> newCharacters          =   new HashMap<>();
+        Map<String, WarcraftCharacter> newCharactersByName  =   new HashMap<>();
         characterDAO.findAll().forEach(character -> {
             newCharacters.put(character.getId(), character);
             newCharactersByName.put(characterToKey(character), character);

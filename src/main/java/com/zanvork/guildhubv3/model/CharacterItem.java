@@ -1,5 +1,6 @@
 package com.zanvork.guildhubv3.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.zanvork.guildhubv3.model.enums.ItemSlots;
 import java.io.Serializable;
 import javax.persistence.Column;
@@ -20,8 +21,9 @@ import lombok.ToString;
  */
 @Entity
 @Data
-@ToString(exclude = {"character"})
-@Table(name="character_item", uniqueConstraints=@UniqueConstraint(columnNames={"slot", "character"}))
+@ToString(exclude = {"owner"})
+@JsonIgnoreProperties("owner")
+@Table(uniqueConstraints=@UniqueConstraint(columnNames={"slot", "owner"}))
 public class CharacterItem implements Serializable {
     @Id
     @GeneratedValue
@@ -39,5 +41,5 @@ public class CharacterItem implements Serializable {
     private ItemSlots slot;
     
     @ManyToOne
-    private Character character;
+    private WarcraftCharacter owner;
 }

@@ -24,6 +24,8 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class DataService implements BackendService{
+    private static final String DEFAULT_SPEC_NAME   =   "Unknown";
+    
     //Battlenet Services
     @Autowired
     private WarcraftAPIService apiService;
@@ -74,6 +76,7 @@ public class DataService implements BackendService{
         }
     }
     
+    
     /**
      * Load the character spec requested from the service's cache.
      * @param key the spec key required
@@ -83,6 +86,40 @@ public class DataService implements BackendService{
         synchronized(characterSpecsLock){
             return characterSpecs.get(key);
         }        
+    }
+    
+    /**
+     * Loads a character spec from a class id and spec name.
+     * Will create a new spec using this information if one does not exist.
+     * @param classId class id to load the spec for
+     * @param specName name of the spec
+     * @return the character spec requested
+     */
+    public CharacterSpec getCharacterSpec(long classId, String specName){
+        if (specName ==  null){
+            specName    =   DEFAULT_SPEC_NAME;
+        }
+        CharacterSpec spec  =   getCharacterSpec(classIDSpecNameToKey(classId, specName));
+        if (spec == null || spec.getId() < 1){
+            spec    =   createCharacterSpec(classId, specName);
+        }
+        return spec;
+    }
+    
+    /**
+     * Creates a new character spec using the class id and spec name provided.
+     * @param classId class id for the spec
+     * @param specName name of the spec
+     * @return the new spec that has been created
+     */
+    public CharacterSpec createCharacterSpec(long classId, String specName){
+        CharacterSpec spec  =   new CharacterSpec();
+        spec.setCharacterClass(getCharacterClass(classId));
+        spec.setSpecName(specName);
+        synchronized(characterSpecsToSave){
+            characterSpecsToSave.add(spec);
+        }
+        return spec;
     }
     /**
      * Turns a realm object into a key.
@@ -120,7 +157,11 @@ public class DataService implements BackendService{
      * @return lower case concatenated string.
      */
     public static String classIDSpecNameToKey(long classId, String specName){
-        return classId + "_" + specName.toLowerCase();
+        if (specName == null){
+            specName    =   DEFAULT_SPEC_NAME;
+        }
+        return String.valueOf(classId) + "_" + specName.toLowerCase();
+        
     }
     
     /**
@@ -128,7 +169,7 @@ public class DataService implements BackendService{
      * Objects are loaded via a call to the Blizzard REST API and cached for 
      * storage in the backend database
      */
-    @Scheduled(fixedDelay=TIME_1_HOUR)
+    @Scheduled(initialDelay=TIME_30_SECOND, fixedDelay=TIME_1_HOUR)
     public void updateFromRest(){
         importRealmsFromRest();
         importCharacterClassesFromRest();
@@ -158,7 +199,6 @@ public class DataService implements BackendService{
                 
             });
         }
-        realmDAO.save(realmsToSave);
     }
     
     /**

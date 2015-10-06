@@ -2,10 +2,12 @@ package com.zanvork.guildhubv3.model;
 
 import com.zanvork.guildhubv3.model.enums.Regions;
 import java.util.List;
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.ManyToOne;
@@ -20,7 +22,7 @@ import lombok.Data;
  */
 @Entity
 @Data
-@Table(name="team", uniqueConstraints=@UniqueConstraint(columnNames={"name", "region"}))
+@Table(uniqueConstraints=@UniqueConstraint(columnNames={"name", "region"}))
 public class Team {
     
     @Id
@@ -34,7 +36,7 @@ public class Team {
     @Column(columnDefinition = "ENUM('EU', 'US', 'KR', 'TW')")
     private Regions region;
     
-    @OneToMany(mappedBy = "team")
+    @OneToMany(mappedBy = "team", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     private List<TeamMember> members;
     
     @ManyToOne

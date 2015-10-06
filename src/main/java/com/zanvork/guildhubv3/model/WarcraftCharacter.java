@@ -1,11 +1,15 @@
 package com.zanvork.guildhubv3.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.io.Serializable;
 import java.util.List;
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
@@ -20,8 +24,9 @@ import lombok.ToString;
 @Entity
 @Data 
 @ToString(exclude = {"guild"})
-@Table(name="character", uniqueConstraints=@UniqueConstraint(columnNames={"name", "realm"}))
-public class Character implements Serializable {
+@JsonIgnoreProperties("guild")
+@Table(uniqueConstraints=@UniqueConstraint(columnNames={"name", "realm"}))
+public class WarcraftCharacter implements Serializable {
     @Id 
     @GeneratedValue
     private long id;
@@ -30,29 +35,28 @@ public class Character implements Serializable {
     private String name;
     
     @ManyToOne 
-    @Column(nullable = false)
+    @JoinColumn(nullable = false)
     private Realm realm;
     
     private int averageItemLevel;
     
     @ManyToOne 
-    @Column(nullable = false)
+    @JoinColumn(nullable = false)
     private CharacterClass characterClass;
     
     @ManyToOne 
-    @Column(nullable = false)
+    @JoinColumn(nullable = false)
     private CharacterSpec mainSpec;
     
     @ManyToOne
     private CharacterSpec offSpec;
     
-    @OneToMany(mappedBy = "character")
+    @OneToMany(mappedBy = "owner", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     private List<CharacterItem> items;
     
-    @ManyToOne 
-    @Column(nullable = false)
+    @ManyToOne
     private User owner;
     
-    @ManyToOne 
+    @ManyToOne
     private Guild guild;
 }

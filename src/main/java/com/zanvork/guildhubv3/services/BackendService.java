@@ -7,6 +7,7 @@ package com.zanvork.guildhubv3.services;
  */
 public interface BackendService {
     public final int TIME_1_HOUR    =   3600000;
+    public final int TIME_30_SECOND =   30000;
     public final int TIME_5_SECOND  =   5000;
     public final int TIME_1_SECOND  =   1000;
     

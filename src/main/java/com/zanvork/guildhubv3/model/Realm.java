@@ -19,7 +19,7 @@ import lombok.Data;
 
 @Entity
 @Data
-@Table(name="realm", uniqueConstraints=@UniqueConstraint(columnNames={"slug", "region"}))
+@Table(uniqueConstraints=@UniqueConstraint(columnNames={"slug", "region"}))
 public class Realm implements Serializable {
     
     @Id 
