@@ -15,6 +15,7 @@ import com.zanvork.guildhubv3.model.dao.CharacterItemDAO;
 import com.zanvork.guildhubv3.model.dao.WarcraftCharacterDAO;
 import com.zanvork.guildhubv3.model.enums.ItemSlots;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,8 +42,9 @@ public class CharacterService implements BackendService{
     private Map<Long, WarcraftCharacter> characters         =   new HashMap<>();
     private Map<String, WarcraftCharacter> charactersByName =   new HashMap<>();
     
-    private final List<WarcraftCharacter> charactersToSave  =   new ArrayList<>();
-    private final List<CharacterItem> itemsToRemove         =   new ArrayList<>();
+    private final List<WarcraftCharacter> charactersToSave      =   new ArrayList<>();
+    private final List<WarcraftCharacter> charactersToRemove    =   new ArrayList<>();
+    private final List<CharacterItem> itemsToRemove             =   new ArrayList<>();
     
     private final Object 
             charactersLock          =   new Object(),
@@ -89,14 +91,28 @@ public class CharacterService implements BackendService{
      * @return the new character
      */
     public WarcraftCharacter createCharacter(String name, String realm, String region){
-        WarcraftCharacter character =   null;
-        RestCharacter characterData =   apiService.getCharacter(region, realm, name);
-        if (characterData != null){
+        return createCharacter(name, realm, region, false);
+    }
+    /**
+     * Create a new character from a name, region and realm.
+     * @param name name of the character.
+     * @param realm realm the character is on
+     * @param region region the realm is in
+     * @param updateDetails whether to load data from the rest API to update
+     * @return the new character
+     */
+    public WarcraftCharacter createCharacter(String name, String realm, String region, boolean updateDetails){
+        WarcraftCharacter character =   getCharacter(name, realm, region);
+        if (character == null){
             character   =   new WarcraftCharacter();
-            character.setName(characterData.getName());
+            character.setName(name);
             character.setRealm(dataService.getRealm(DataService.realmNameRegionToKey(realm, region)));
-            
-            updateCharacter(character, characterData);
+            if (updateDetails){
+                RestCharacter characterData =   apiService.getCharacter(region, realm, name);
+                if (characterData != null){
+                    updateCharacter(character, characterData);
+                }
+            }
         }
         return character;
     }
@@ -124,17 +140,15 @@ public class CharacterService implements BackendService{
      * @param characterData RestCharacter to load information from
      */
     private void updateCharacter(WarcraftCharacter character, RestCharacter characterData){
+        character.setName(characterData.getName());
         character.setCharacterClass(dataService.getCharacterClass(characterData.getCharClass()));
         updateCharacterSpec(character, characterData.getTalents());
 
         character.setAverageItemLevel(characterData.getItems().getAverageItemLevel());
         setCharacterItems(character, characterData.getItems());
 
-        character.setGuild(null);
         character.setOwner(null);
-        synchronized(charactersToSave){
-            charactersToSave.add(character);
-        }
+        addCharacterToSave(character);
     }
     
     /**
@@ -147,7 +161,7 @@ public class CharacterService implements BackendService{
         String[] specNames  =   new String[2];
         int mainSpecId  =   0;
         specNames[0]    =   talentsData.get(0).getSpec().getName();
-        if (talentsData.size() > 1){
+        if (talentsData.size() > 1 && talentsData.get(1).getSpec() != null){
             specNames[1]    =   talentsData.get(1).getSpec().getName();
             if (talentsData.get(1).isSelected()){
                 mainSpecId  =   1;
@@ -169,9 +183,11 @@ public class CharacterService implements BackendService{
     private void setCharacterItems(WarcraftCharacter character, RestCharacterItems itemsData){
         Map<ItemSlots, CharacterItem> characterItems    =   new HashMap<>();
         List<CharacterItem> newItems                    =   new ArrayList<>();
-        character.getItems().stream().forEach((item) -> {
-            characterItems.put(item.getSlot(), item);
-        });
+        if (character.getItems() != null){
+            character.getItems().stream().forEach((item) -> {
+                characterItems.put(item.getSlot(), item);
+            });
+        }
         itemsData.getItems().entrySet().stream()
                 .filter(entry -> 
                         entry.getValue() != null
@@ -218,18 +234,50 @@ public class CharacterService implements BackendService{
         return name.toLowerCase() + "_" + realm.toLowerCase() + "_" + region.toLowerCase();
     }
     
+    
+    public void saveCharacters(Collection<WarcraftCharacter> characters){
+        characters.forEach(character -> addCharacterToSave(character));
+    }
+    
+    public void addCharacterToSave(WarcraftCharacter character){
+        synchronized(charactersToSave){
+            charactersToSave.add(character);
+        }
+        synchronized(charactersLock){
+            characters.put(character.getId(), character);
+        }
+        synchronized(charactersByNameLock){
+            charactersByName.put(characterToKey(character), character);
+        }
+    }
     /**
      * Store all objects currently cached in service.
      */
     @Scheduled(fixedDelay=TIME_5_SECOND)
     @Override
-    public void storeObjects(){
+    public void updateToBackend(){
         synchronized(itemsToRemove){
+            try{
             characterItemDAO.delete(itemsToRemove);
+            } catch (Exception e){
+                System.out.println("ERROR - Failed to remove item: " + e);
+            }
             itemsToRemove.clear();
         }
+        synchronized(charactersToRemove){
+            try{
+                characterDAO.delete(charactersToRemove);
+            } catch (Exception e){
+                System.out.println("ERROR - Failed to remove character: " + e);
+            }
+            charactersToRemove.clear();
+        }
         synchronized(charactersToSave){
-            characterDAO.save(charactersToSave);
+            try{
+                characterDAO.save(charactersToSave);
+            } catch (Exception e){
+                System.out.println("ERROR - Failed to save character: " + e);
+            }
             charactersToSave.clear();
         }
     }

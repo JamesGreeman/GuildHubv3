@@ -12,51 +12,69 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
-import lombok.Data;
-import lombok.ToString;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  *
  * @author zanvork
  */
 @Entity
-@Data 
-@ToString(exclude = {"guild"})
-@JsonIgnoreProperties("guild")
+@JsonIgnoreProperties("guildMember")
 @Table(uniqueConstraints=@UniqueConstraint(columnNames={"name", "realm"}))
 public class WarcraftCharacter implements Serializable {
+    @Getter
+    @Setter
     @Id 
     @GeneratedValue
     private long id;
     
+    @Getter
+    @Setter
     @Column(nullable = false)
     private String name;
     
+    @Getter
+    @Setter
     @ManyToOne 
     @JoinColumn(nullable = false)
     private Realm realm;
     
+    @Getter
+    @Setter
     private int averageItemLevel;
     
+    @Getter
+    @Setter
     @ManyToOne 
-    @JoinColumn(nullable = false)
     private CharacterClass characterClass;
     
+    @Getter
+    @Setter
     @ManyToOne 
-    @JoinColumn(nullable = false)
     private CharacterSpec mainSpec;
     
+    @Getter
+    @Setter
     @ManyToOne
     private CharacterSpec offSpec;
     
+    @Getter
+    @Setter
     @OneToMany(mappedBy = "owner", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     private List<CharacterItem> items;
     
+    @Getter
+    @Setter
     @ManyToOne
     private User owner;
     
-    @ManyToOne
-    private Guild guild;
+    @Getter
+    @OneToOne(mappedBy = "member")
+    private GuildMember guildMember;
+    
+    
 }

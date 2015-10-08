@@ -16,7 +16,7 @@ public class UserService implements BackendService{
      */
     @Scheduled(fixedDelay=TIME_5_SECOND)
     @Override
-    public void storeObjects(){
+    public void updateToBackend(){
         //TODO: implement this
     }
     /**

@@ -13,5 +13,5 @@ public interface BackendService {
     
     
     public void updateFromBackend();
-    public void storeObjects();
+    public void updateToBackend();
 }

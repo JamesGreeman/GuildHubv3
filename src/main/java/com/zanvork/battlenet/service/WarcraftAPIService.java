@@ -12,6 +12,7 @@ import com.zanvork.battlenet.model.RestRealm;
 import com.zanvork.battlenet.model.RestRealms;
 import java.util.List;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 /**
@@ -30,10 +31,13 @@ public class WarcraftAPIService {
      * @return the character object
      */
     public RestCharacter getCharacter(String region, String realm, String name){
-        return new RestTemplate().getForObject(
-                BattleNetRequest.buildRequest("character", region, realm, name, new String[]{"talents","items"}),
-                RestCharacter.class
-        );
+        String url  =   BattleNetRequest.buildRequest("character", region, realm, name, new String[]{"talents","items"});
+        try {
+            return new RestTemplate().getForObject(url, RestCharacter.class);
+        } catch (HttpClientErrorException e){
+            System.out.println("Could not make request '" + url + "' got error: " + e);
+        }
+        return null;        
     }
     
     public RestGuild getGuild(String region, String realm, String name){
@@ -48,13 +52,16 @@ public class WarcraftAPIService {
      * @return the guild object
      */
     public RestGuild getGuild(String region, String realm, String name, boolean getMemberDetails){
-        RestGuild guild = new RestTemplate().getForObject(
-                BattleNetRequest.buildRequest("guild", region, realm, name, new String[]{"members"}),
-                RestGuild.class
-        );
-        if (getMemberDetails){
+        RestGuild guild =   null;
+        String url  =   BattleNetRequest.buildRequest("guild", region, realm, name, new String[]{"members"});
+        try {
+            guild   =   new RestTemplate().getForObject(url, RestGuild.class);
+        } catch (HttpClientErrorException e){
+            System.out.println("Could not make request '" + url + "' got error: " + e);
+        }
+        if (getMemberDetails && guild != null){
             guild.getMembers().stream().forEach((member) -> {
-                member.setGuildMember(getCharacter(region, guild.getRealm(), member.getGuildMember().getName()));
+                member.setGuildMember(getCharacter(region, member.getGuildMember().getRealm(), member.getGuildMember().getName()));
             });
         }
         return guild;
@@ -66,10 +73,13 @@ public class WarcraftAPIService {
      * @return list of RestRealm models
      */
     public List<RestRealm> getRealms(String region){
-        return new RestTemplate().getForObject(
-                BattleNetRequest.buildObjectRequest("realm", region), 
-                RestRealms.class
-        ).getRealms();
+        String url  =   BattleNetRequest.buildObjectRequest("realm", region);
+        try {
+            return new RestTemplate().getForObject(url, RestRealms.class).getRealms();
+        } catch (HttpClientErrorException e){
+            System.out.println("Could not make request '" + url + "' got error: " + e);
+        }
+        return null;     
     }  
     
     /**
@@ -77,26 +87,35 @@ public class WarcraftAPIService {
      * @return list of RestClass models
      */
     public List<RestClass> getClasses(){
-        return new RestTemplate().getForObject(
-                BattleNetRequest.buildObjectRequest("data/character/classes"), 
-                RestClasses.class
-        ).getClasses();
+        String url  =   BattleNetRequest.buildObjectRequest("data/character/classes");
+        try {
+            return new RestTemplate().getForObject(url, RestClasses.class).getClasses();
+        } catch (HttpClientErrorException e){
+            System.out.println("Could not make request '" + url + "' got error: " + e);
+        }
+        return null;       
     }
     /**
      * Load all races.
      * @return list of RestRace models
      */
     public List<RestRace> getRaces(){
-        return new RestTemplate().getForObject(
-                BattleNetRequest.buildObjectRequest("data/character/races"), 
-                RestRaces.class
-        ).getRaces();
+        String url  =   BattleNetRequest.buildObjectRequest("data/character/races");
+        try {
+            return new RestTemplate().getForObject(url, RestRaces.class).getRaces();
+        } catch (HttpClientErrorException e){
+            System.out.println("Could not make request '" + url + "' got error: " + e);
+        }
+        return null;       
     }
     
     public RestItem getItem(long id){
-        return new RestTemplate().getForObject(
-                BattleNetRequest.buildObjectRequest("item", "", "","" + id), 
-                RestItem.class
-        );
+        String url  =   BattleNetRequest.buildObjectRequest("item", "", "","" + id);
+        try {
+            return new RestTemplate().getForObject(url, RestItem.class);
+        } catch (HttpClientErrorException e){
+            System.out.println("Could not make request '" + url + "' got error: " + e);
+        }
+        return null;    
     }
 }
