@@ -1,7 +1,11 @@
 package com.zanvork.guildhubv3.model;
 
 import com.zanvork.guildhubv3.model.enums.Regions;
+import com.zanvork.guildhubv3.services.CharacterService;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -13,6 +17,7 @@ import javax.persistence.Id;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
 import lombok.Data;
 
@@ -36,9 +41,30 @@ public class Team {
     @Column(columnDefinition = "ENUM('EU', 'US', 'KR', 'TW')")
     private Regions region;
     
-    @OneToMany(mappedBy = "team", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-    private List<TeamMember> members;
+    @OneToMany(mappedBy = "team", fetch = FetchType.EAGER, cascade=CascadeType.ALL, orphanRemoval=true)
+    private List<TeamMember> members    =   new ArrayList<>();
+    
+    @Transient
+    private Map<String, TeamMember> membersMap  =   new HashMap<>();
     
     @ManyToOne
     private User owner;
+    
+    public void addMember(TeamMember member){
+        member.setTeam(this);
+        members.add(member);
+    }
+    
+    public TeamMember getMember(String key){
+        if (membersMap.size() != members.size()){
+            updateMembersMap();
+        }
+        return membersMap.get(key);
+    }
+    
+    private void updateMembersMap(){
+        members.forEach((member) -> {
+            membersMap.put(CharacterService.characterToKey(member.getMember()), member);
+        });
+    }
 }

@@ -44,7 +44,7 @@ public class Guild implements Serializable {
     
     @Getter
     @Setter
-    @OneToMany(mappedBy = "guild", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "guild", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval=true)
     private List<GuildMember> members  =   new ArrayList<>();
     
     @Getter
