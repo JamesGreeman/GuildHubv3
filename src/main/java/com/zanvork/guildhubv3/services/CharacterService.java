@@ -19,6 +19,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  *
  * @author zanvork
@@ -39,11 +41,11 @@ public class CharacterService implements BackendService{
     @Autowired
     private CharacterItemDAO characterItemDAO;
     
+    private final Logger log  =   LoggerFactory.getLogger(this.getClass());
+    
     private Map<Long, WarcraftCharacter> characters         =   new HashMap<>();
     private Map<String, WarcraftCharacter> charactersByName =   new HashMap<>();
     
-    private final List<WarcraftCharacter> charactersToSave      =   new ArrayList<>();
-    private final List<WarcraftCharacter> charactersToRemove    =   new ArrayList<>();
     private final List<CharacterItem> itemsToRemove             =   new ArrayList<>();
     
     private final Object 
@@ -148,7 +150,7 @@ public class CharacterService implements BackendService{
         setCharacterItems(character, characterData.getItems());
 
         character.setOwner(null);
-        addCharacterToSave(character);
+        saveCharacter(character);
     }
     
     /**
@@ -209,9 +211,6 @@ public class CharacterService implements BackendService{
                     newItems.add(item);
                 });
         character.setItems(newItems);
-        synchronized(itemsToRemove){
-            itemsToRemove.addAll(characterItems.values());
-        }
     }
     
     /**
@@ -236,13 +235,16 @@ public class CharacterService implements BackendService{
     
     
     public void saveCharacters(Collection<WarcraftCharacter> characters){
-        characters.forEach(character -> addCharacterToSave(character));
+        characters.forEach(character -> saveCharacter(character));
     }
     
-    public void addCharacterToSave(WarcraftCharacter character){
-        synchronized(charactersToSave){
-            charactersToSave.add(character);
+    public void saveCharacter(WarcraftCharacter character){
+        try{
+            characterDAO.save(character);
+        } catch (Exception e){
+            log.error("Failed to save character with id: " + character.getId(), e);
         }
+       
         synchronized(charactersLock){
             characters.put(character.getId(), character);
         }
@@ -250,41 +252,26 @@ public class CharacterService implements BackendService{
             charactersByName.put(characterToKey(character), character);
         }
     }
+    
     /**
      * Store all objects currently cached in service.
      */
-    @Scheduled(fixedDelay=TIME_5_SECOND)
+    @Scheduled(fixedDelay=TIME_15_SECOND)
     @Override
     public void updateToBackend(){
         synchronized(itemsToRemove){
             try{
             characterItemDAO.delete(itemsToRemove);
             } catch (Exception e){
-                System.out.println("ERROR - Failed to remove item: " + e);
+                log.error("Failed to remove item", e);
             }
             itemsToRemove.clear();
-        }
-        synchronized(charactersToRemove){
-            try{
-                characterDAO.delete(charactersToRemove);
-            } catch (Exception e){
-                System.out.println("ERROR - Failed to remove character: " + e);
-            }
-            charactersToRemove.clear();
-        }
-        synchronized(charactersToSave){
-            try{
-                characterDAO.save(charactersToSave);
-            } catch (Exception e){
-                System.out.println("ERROR - Failed to save character: " + e);
-            }
-            charactersToSave.clear();
         }
     }
     /**
      * Loads object from the backend database into memory.
      */
-    @Scheduled(fixedDelay=TIME_5_SECOND)
+    @Scheduled(fixedDelay=TIME_15_SECOND)
     @Override
     public void updateFromBackend(){
         loadCharactersFromBackend();

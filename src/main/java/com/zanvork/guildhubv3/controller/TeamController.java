@@ -39,13 +39,13 @@ public class TeamController {
     @RequestMapping("/addMember/{regionName}/{name}/{realmName}/{characterName}")
     public String addTeamMember(@PathVariable String regionName, @PathVariable String name, @PathVariable String realmName, @PathVariable String characterName){
         teamService.addMember(name, regionName, characterName, realmName);
-        return "Failed to create team.";
+        return "Added member.";
     }
     
     @RequestMapping("/removeMember/{regionName}/{name}/{realmName}/{characterName}")
     public String removeTeamMember(@PathVariable String regionName, @PathVariable String name, @PathVariable String realmName, @PathVariable String characterName){
         teamService.removeMember(name, regionName, characterName, realmName);
-        return "Deleted team.";
+        return "Removed member.";
     }
     
     

@@ -7,11 +7,10 @@ import com.zanvork.guildhubv3.model.Guild;
 import com.zanvork.guildhubv3.model.GuildMember;
 import com.zanvork.guildhubv3.model.WarcraftCharacter;
 import com.zanvork.guildhubv3.model.dao.GuildDAO;
-import com.zanvork.guildhubv3.model.dao.GuildMemberDAO;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -35,14 +34,11 @@ public class GuildService implements BackendService{
     //DAOs
     @Autowired
     private GuildDAO guildDAO;
-    @Autowired
-    private GuildMemberDAO guildMemberDAO;
+    
+    private final Logger log  =   LoggerFactory.getLogger(this.getClass());
     
     private Map<Long, Guild>    guilds          =   new HashMap<>();
     private Map<String, Guild>  guildsByName    =   new HashMap<>();
-    
-    private final List<Guild> guildsToSave                      =   new ArrayList<>();
-    private final List<GuildMember> guildMembersToSave          =   new ArrayList<>();
     
     private final Object
             guildsLock       =   new Object(),
@@ -178,8 +174,7 @@ public class GuildService implements BackendService{
                 } 
                 if (character != null){
                     String key          =   CharacterService.characterToKey(character);
-                    GuildMember member  =   guildMembers.get(key);
-                    guildMembers.remove(key);
+                    GuildMember member  =   guildMembers.remove(key);
                     if (member == null){
                         member  =   new GuildMember();
                     }
@@ -193,10 +188,7 @@ public class GuildService implements BackendService{
                 }
             }
         });
-        synchronized(guildMembersToSave){
-            guildMembersToSave.addAll(guildMembers.values());
-        }
-        addGuildToSave(guild);
+        saveGuild(guild);
     }
     
     
@@ -220,9 +212,11 @@ public class GuildService implements BackendService{
         return name.toLowerCase() + "_" + realm.toLowerCase() + "_" + region.toLowerCase();
     }
     
-    private void addGuildToSave(Guild guild){
-        synchronized(guildsToSave){
-            guildsToSave.add(guild);
+    private void saveGuild(Guild guild){
+         try {
+            guildDAO.save(guild);
+        } catch (Exception e){
+            log.error("Failed to save guild with id: " + guild.getId(), e);
         }
         
         synchronized(guildsLock){
@@ -235,29 +229,15 @@ public class GuildService implements BackendService{
     /**
      * Store all objects currently cached in service.
      */
-    @Scheduled(fixedDelay=TIME_5_SECOND)
+    @Scheduled(fixedDelay=TIME_15_SECOND)
     @Override
     public void updateToBackend(){
-        synchronized(guildsToSave){
-            try {
-                guildDAO.save(guildsToSave);
-            } catch (Exception e){
-                System.out.println("ERROR - Failed to save guild: " + e);
-            }
-            guildsToSave.clear();
-        }
-        synchronized(guildMembersToSave){ try {
-                guildMemberDAO.save(guildMembersToSave);
-            } catch (Exception e){
-                System.out.println("ERROR - Failed to save guild: " + e);
-            }
-            guildMembersToSave.clear();
-        }
+       
     }
     /**
      * Loads object from the backend database into memory.
      */
-    @Scheduled(fixedDelay=TIME_5_SECOND)
+    @Scheduled(fixedDelay=TIME_15_SECOND)
     @Override
     public void updateFromBackend(){
         loadGuildsFromBackend();

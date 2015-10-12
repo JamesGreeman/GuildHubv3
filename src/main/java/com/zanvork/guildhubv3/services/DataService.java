@@ -14,6 +14,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -41,13 +43,15 @@ public class DataService implements BackendService{
     @Autowired
     private CharacterSpecDAO characterSpecDAO;
     
+    
+    private final Logger log  =   LoggerFactory.getLogger(this.getClass());
+    
     private Map<String, Realm> realms                           =   new HashMap<>();
     private Map<Long, CharacterClass> characterClasses          =   new HashMap<>();
     private Map<String, CharacterSpec> characterSpecs             =   new HashMap<>();
     
     private final List<Realm> realmsToSave                      =   new ArrayList<>();
     private final List<CharacterClass> characterClassesToSave   =   new ArrayList<>();
-    private final List<CharacterSpec> characterSpecsToSave      =   new ArrayList<>();
     
     private final Object 
             realmsLock          =   new Object(), 
@@ -116,8 +120,10 @@ public class DataService implements BackendService{
         CharacterSpec spec  =   new CharacterSpec();
         spec.setCharacterClass(getCharacterClass(classId));
         spec.setSpecName(specName);
-        synchronized(characterSpecsToSave){
-            characterSpecsToSave.add(spec);
+        try{
+            characterSpecDAO.save(spec);
+        } catch (Exception e){
+            log.error("Failed to save spec", e);
         }
         return spec;
     }
@@ -225,27 +231,31 @@ public class DataService implements BackendService{
     /**
      * Store all objects currently cached in service.
      */
-    @Scheduled(fixedDelay=TIME_5_SECOND)
+    @Scheduled(fixedDelay=TIME_15_SECOND)
     @Override
     public void updateToBackend(){
         synchronized(realmsToSave){
-            realmDAO.save(realmsToSave);
+            try{
+                realmDAO.save(realmsToSave);
+            } catch (Exception e){
+                log.error("Failed to save " + realmsToSave.size() + "realms.", e);
+            }
             realmsToSave.clear();
         }
         synchronized(characterClassesToSave){
-            characterClassDAO.save(characterClassesToSave);
+            try{
+                characterClassDAO.save(characterClassesToSave);
+            } catch (Exception e){
+                log.error("Failed to save " + characterClassesToSave.size() + "classes.", e);
+            }
             characterClassesToSave.clear();
-        }
-        synchronized(characterSpecsToSave){
-            characterSpecDAO.save(characterSpecsToSave);
-            characterSpecsToSave.clear();
         }
     }
     
     /**
      * Loads object from the backend database into memory.
      */
-    @Scheduled(fixedDelay=TIME_5_SECOND)
+    @Scheduled(fixedDelay=TIME_15_SECOND)
     @Override
     public void updateFromBackend(){
         loadRealmsFromBackend();

@@ -64,7 +64,7 @@ public class WarcraftCharacter implements Serializable {
     
     @Getter
     @Setter
-    @OneToMany(mappedBy = "owner", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "owner", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval=true)
     private List<CharacterItem> items;
     
     @Getter

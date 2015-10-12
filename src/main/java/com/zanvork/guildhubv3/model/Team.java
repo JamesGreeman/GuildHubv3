@@ -1,5 +1,6 @@
 package com.zanvork.guildhubv3.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.zanvork.guildhubv3.model.enums.Regions;
 import com.zanvork.guildhubv3.services.CharacterService;
 import java.util.ArrayList;
@@ -27,6 +28,7 @@ import lombok.Data;
  */
 @Entity
 @Data
+@JsonIgnoreProperties("membersMap")
 @Table(uniqueConstraints=@UniqueConstraint(columnNames={"name", "region"}))
 public class Team {
     

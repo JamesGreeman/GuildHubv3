@@ -11,6 +11,8 @@ import com.zanvork.battlenet.model.RestRaces;
 import com.zanvork.battlenet.model.RestRealm;
 import com.zanvork.battlenet.model.RestRealms;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
@@ -23,6 +25,7 @@ import org.springframework.web.client.RestTemplate;
 public class WarcraftAPIService {
     
     
+    private final Logger log  =   LoggerFactory.getLogger(this.getClass());
     /**
      * Load information for a specified character
      * @param region region the character is in
@@ -35,7 +38,7 @@ public class WarcraftAPIService {
         try {
             return new RestTemplate().getForObject(url, RestCharacter.class);
         } catch (HttpClientErrorException e){
-            System.out.println("Could not make request '" + url + "' got error: " + e);
+            log.error("Could not make request '" + url,  e);
         }
         return null;        
     }
@@ -57,7 +60,7 @@ public class WarcraftAPIService {
         try {
             guild   =   new RestTemplate().getForObject(url, RestGuild.class);
         } catch (HttpClientErrorException e){
-            System.out.println("Could not make request '" + url + "' got error: " + e);
+            log.error("Could not make request '" + url,  e);
         }
         if (getMemberDetails && guild != null){
             guild.getMembers().stream().forEach((member) -> {
@@ -77,7 +80,7 @@ public class WarcraftAPIService {
         try {
             return new RestTemplate().getForObject(url, RestRealms.class).getRealms();
         } catch (HttpClientErrorException e){
-            System.out.println("Could not make request '" + url + "' got error: " + e);
+            log.error("Could not make request '" + url,  e);
         }
         return null;     
     }  
@@ -91,7 +94,7 @@ public class WarcraftAPIService {
         try {
             return new RestTemplate().getForObject(url, RestClasses.class).getClasses();
         } catch (HttpClientErrorException e){
-            System.out.println("Could not make request '" + url + "' got error: " + e);
+            log.error("Could not make request '" + url,  e);
         }
         return null;       
     }
@@ -104,7 +107,7 @@ public class WarcraftAPIService {
         try {
             return new RestTemplate().getForObject(url, RestRaces.class).getRaces();
         } catch (HttpClientErrorException e){
-            System.out.println("Could not make request '" + url + "' got error: " + e);
+            log.error("Could not make request '" + url,  e);
         }
         return null;       
     }
@@ -114,7 +117,7 @@ public class WarcraftAPIService {
         try {
             return new RestTemplate().getForObject(url, RestItem.class);
         } catch (HttpClientErrorException e){
-            System.out.println("Could not make request '" + url + "' got error: " + e);
+            log.error("Could not make request '" + url,  e);
         }
         return null;    
     }

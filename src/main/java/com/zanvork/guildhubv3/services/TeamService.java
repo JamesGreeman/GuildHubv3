@@ -139,14 +139,14 @@ public class TeamService implements BackendService{
     /**
      * Store all objects currently cached in service.
      */
-    @Scheduled(fixedDelay=TIME_5_SECOND)
+    @Scheduled(fixedDelay=TIME_15_SECOND)
     @Override
     public void updateToBackend(){
     }
     /**
      * Loads object from the backend database into memory.
      */
-    @Scheduled(fixedDelay=TIME_5_SECOND)
+    @Scheduled(fixedDelay=TIME_15_SECOND)
     @Override
     public void updateFromBackend(){
         loadTeamsFromBackend();
