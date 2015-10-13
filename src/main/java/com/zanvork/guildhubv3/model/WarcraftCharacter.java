@@ -68,11 +68,6 @@ public class WarcraftCharacter implements Serializable {
     private List<CharacterItem> items;
     
     @Getter
-    @Setter
-    @ManyToOne
-    private User owner;
-    
-    @Getter
     @OneToOne(mappedBy = "member")
     private GuildMember guildMember;
     

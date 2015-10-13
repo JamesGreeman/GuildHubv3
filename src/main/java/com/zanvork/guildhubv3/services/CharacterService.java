@@ -149,7 +149,6 @@ public class CharacterService implements BackendService{
         character.setAverageItemLevel(characterData.getItems().getAverageItemLevel());
         setCharacterItems(character, characterData.getItems());
 
-        character.setOwner(null);
         saveCharacter(character);
     }
     

@@ -6,15 +6,16 @@ import org.apache.tomcat.util.descriptor.web.SecurityCollection;
 import org.apache.tomcat.util.descriptor.web.SecurityConstraint;
 import org.springframework.boot.context.embedded.EmbeddedServletContainerFactory;
 import org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainerFactory;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 /**
- *
+ * Configuration for tomcat - automatically redirect http requests to https for all traffic
+ * @see http://stackoverflow.com/questions/26438143/spring-boot-embeded-tomcat-http-to-https-redirect
  * @author zanvork
  */
-@ConfigurationProperties
-public class TomcatConfiguration {
+@Configuration
+public class TomcatConfig {
     @Bean
     public EmbeddedServletContainerFactory servletContainer() {
         TomcatEmbeddedServletContainerFactory tomcat = new TomcatEmbeddedServletContainerFactory() {
@@ -31,8 +32,12 @@ public class TomcatConfiguration {
     
         tomcat.addAdditionalTomcatConnectors(initiateHttpConnector());
         return tomcat;
-        }
-  
+    }
+    
+    /**
+     * When a http (port 8080) connector is requested - redirect to https (port 8443)
+     * @return redirected connector
+     */
     private Connector initiateHttpConnector() {
         Connector connector = new Connector("org.apache.coyote.http11.Http11NioProtocol");
         connector.setScheme("http");

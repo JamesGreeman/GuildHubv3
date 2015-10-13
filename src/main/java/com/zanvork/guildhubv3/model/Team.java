@@ -49,8 +49,6 @@ public class Team {
     @Transient
     private Map<String, TeamMember> membersMap  =   new HashMap<>();
     
-    @ManyToOne
-    private User owner;
     
     public void addMember(TeamMember member){
         member.setTeam(this);

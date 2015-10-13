@@ -24,7 +24,7 @@ public class CharacterController {
     
     @RequestMapping("/add/{regionName}/{realmName}/{name}")
     public String addCharacter(@PathVariable String regionName, @PathVariable String realmName, @PathVariable String name){
-        if (characterService.createCharacter(name, realmName, regionName) != null){
+        if (characterService.createCharacter(name, realmName, regionName, true) != null){
             return "Successfully created character.";
         }
         return "Failed to create character.";

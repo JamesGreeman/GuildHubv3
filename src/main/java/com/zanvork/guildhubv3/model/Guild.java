@@ -53,10 +53,6 @@ public class Guild implements Serializable {
     @OneToOne(cascade = CascadeType.ALL)
     private WarcraftCharacter leader;
     
-    @ManyToOne
-    @Getter
-    @Setter
-    private User owner;
     
     public void addMember(GuildMember member){
         members.add(member);
