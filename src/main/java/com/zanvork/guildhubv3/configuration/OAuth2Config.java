@@ -77,7 +77,9 @@ public class OAuth2Config {
         @Override
         public void configure(HttpSecurity http) throws Exception {
             http
-                    .authorizeRequests().anyRequest().authenticated();
+                    .authorizeRequests()
+                    .antMatchers("/users/signup/**").permitAll()
+                    .anyRequest().authenticated();
         }
 
         @Override

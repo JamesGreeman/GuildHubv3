@@ -1,7 +1,13 @@
-create table if not exists users (
-    username VARCHAR(50) not null primary key,
-    password VARCHAR(50) not null,
-    enabled boolean not null);
+CREATE TABLE IF NOT EXISTS `users` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `username` varchar(50) COLLATE utf8_bin NOT NULL,
+  `email` varchar(255) COLLATE utf8_bin NOT NULL,
+  `password` varchar(255) COLLATE utf8_bin NOT NULL,
+  `enabled` tinyint(1) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `email_UNIQUE` (`email`),
+  UNIQUE KEY `username_UNIQUE` (`username`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 create table if not exists authorities (
     username VARCHAR(50) not null,
@@ -53,8 +59,9 @@ create table if not exists oauth_code (
 
 
 
-INSERT  INTO `users`(username,`password`) VALUES ('jamie' , 'jamie');
-INSERT  INTO `users`(username,`password`) VALUES ('admin' , 'admin');
+INSERT IGNORE  INTO `users`(username, `email`, `password`, `enabled`) VALUES ('jamie', 'jamie.greeman@gmail.com', 'jamie', 1);
+INSERT IGNORE  INTO `users`(username, `email`, `password`, `enabled`) VALUES ('admin', 'admin@zanvork.com', 'admin', 0);
 
 
-INSERT INTO `oauth_client_details` (`client_id`, `resource_ids`, `client_secret`, `scope`, `authorized_grant_types`, `web_server_redirect_uri`, `authorities`, `access_token_validity`, `refresh_token_validity`, `additional_information`, `autoapprove`) VALUES('clientapp','GuildHubV3','123456','read,write','password,refresh_token','','USER',NULL,NULL,'{}','');
+DELETE FROM `oauth_client_details` WHERE client_id = 'clientapp';
+INSERT IGNORE INTO `oauth_client_details` (`client_id`, `resource_ids`, `client_secret`, `scope`, `authorized_grant_types`, `web_server_redirect_uri`, `authorities`, `access_token_validity`, `refresh_token_validity`, `additional_information`, `autoapprove`) VALUES('clientapp','GuildHubV3','123456','read,write','password,refresh_token','','USER',NULL,NULL,'{}','');
