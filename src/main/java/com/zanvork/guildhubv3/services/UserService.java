@@ -1,18 +1,24 @@
 package com.zanvork.guildhubv3.services;
 
+import com.zanvork.guildhubv3.model.Role;
 import com.zanvork.guildhubv3.model.User;
+import com.zanvork.guildhubv3.model.dao.RoleDAO;
 import com.zanvork.guildhubv3.model.dao.UserDAO;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -20,8 +26,11 @@ import org.springframework.stereotype.Service;
 public class UserService implements UserDetailsService, BackendService {
 
     private static final Logger log  =   LoggerFactory.getLogger(UserService.class);
+    
     @Autowired
     private UserDAO userDAO;
+    @Autowired
+    private RoleDAO roleDAO;
         
     private Map<Long, User> users           =   new HashMap();
     private Map<String, User> usersByName   =   new HashMap();
@@ -30,10 +39,22 @@ public class UserService implements UserDetailsService, BackendService {
             usersLock       =   new Object(),
             usersByNameLock =   new Object();
 
+    
+    private final BCryptPasswordEncoder passwordEncoder =   new BCryptPasswordEncoder();
+    
     public User getUser(String username){
         synchronized(usersByNameLock){
             return usersByName.get(username);
         }
+    }
+    
+    
+    public Role getRole(String name){
+        Role role   =   roleDAO.findOneByName(name).orElse(new Role(name));
+        if (role.getId() < 1){
+            roleDAO.save(role);
+        }
+        return role;
     }
     
     /**
@@ -42,7 +63,7 @@ public class UserService implements UserDetailsService, BackendService {
      * @param email user's email address
      * @param password user's password
      * @return the new User account
-     */
+     */    
     public User createUser(String username, String email, String password){
        if (getUser(username ) != null){
            return null;
@@ -50,12 +71,45 @@ public class UserService implements UserDetailsService, BackendService {
        User user    =   new User();
        user.setUsername(username);
        user.setEmailAddress(email);
-       user.setPasswordHash(new BCryptPasswordEncoder().encode(password));
+       user.setPasswordHash(passwordEncoder.encode(password));
        user.setEnabled(true);
+       Set<Role> roles  =   new HashSet<>();
+       roles.add(getRole(Role.ROLE_USER));
+       user.setRoles(roles);
        
        saveUser(user);
        return user;
     }
+    
+    public User updatePassword(String username, String oldPassword, String newPassword){
+        User user   =   getUser(username);
+        if (user != null){
+            if (BCrypt.checkpw(oldPassword, user.getPasswordHash())){
+                user.setPasswordHash(passwordEncoder.encode(newPassword));
+                saveUser(user);
+            } else {
+                user = null;
+            }
+        }
+        return user;
+    }
+     
+    public User updatePasswordForUser(String adminName, String username, String newPassword){
+        User admin  =   getUser(adminName);
+        User user   =   null;
+        //TODO implement an admin role and chack for this method
+        if (admin != null && false){
+            user   =   getUser(username);
+            if (user != null){
+                user.setPasswordHash(passwordEncoder.encode(newPassword));
+                saveUser(user);
+            } else {
+                user = null;
+            }
+        }
+        return user;
+    }
+    
     
     public void saveUser(User user){
         userDAO.save(user);
@@ -87,6 +141,7 @@ public class UserService implements UserDetailsService, BackendService {
         return user;
     }
 
+    @Scheduled(fixedDelay=TIME_15_SECOND)
     @Override
     public void updateFromBackend() {
            updateUsersFromBackend();

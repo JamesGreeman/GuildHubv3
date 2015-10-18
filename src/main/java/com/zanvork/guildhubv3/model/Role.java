@@ -19,7 +19,9 @@ import org.springframework.security.core.GrantedAuthority;
 @Entity
 @Table(name = "role")
 public class Role implements GrantedAuthority {
-
+    public static final String 
+            ROLE_USER   =   "ROLE_USER",
+            ROLE_ADMIN  =   "ROLE_ADMIN";
 	private static final long serialVersionUID = 1L;
 
 	@Id
@@ -33,6 +35,12 @@ public class Role implements GrantedAuthority {
 	@ManyToMany(fetch = FetchType.LAZY, mappedBy = "roles")
 	private Set<User> users = new HashSet<>();
 
+    public Role(){
+        
+    }
+    public Role(String name){
+        this.name   =   name;
+    }
 	@Override
 	public String getAuthority() {
 		return name;

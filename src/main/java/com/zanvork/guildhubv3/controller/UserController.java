@@ -1,6 +1,7 @@
 package com.zanvork.guildhubv3.controller;
 
 import com.zanvork.guildhubv3.services.UserService;
+import java.security.Principal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,5 +25,28 @@ public class UserController {
             return "Successfully created user.";
         }
         return "Failed to create user.";
+    }
+    
+    
+    @RequestMapping(value = "/admin/{username}", method = RequestMethod.DELETE)
+    public String removeUser(@PathVariable String username, Principal principal){
+        return "Not yet implemented";
+    }
+    
+    @RequestMapping(value = "/password/{oldPassword}/{newPassword}", method = RequestMethod.PUT)
+    public String changePassword(@PathVariable String oldPassword, @PathVariable String newPassword, Principal principal){
+        if (userService.updatePassword(principal.getName(), oldPassword, newPassword) != null){
+            return "Successfully updated your password";
+        } 
+        return "Failed to update your password";
+    }
+    
+    @RequestMapping(value = "/admin/password/{username}/{newPassword}", method = RequestMethod.PUT)
+    public String adminChangePassword(@PathVariable String username, @PathVariable String newPassword, Principal principal){
+        if (userService.updatePasswordForUser(principal.getName(), username, newPassword) != null){
+            return "Successfully updated password for " + username;
+        } 
+        return "Failed to update " + username + "'s password";
+        
     }
 }
