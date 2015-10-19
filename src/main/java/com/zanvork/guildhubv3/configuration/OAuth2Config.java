@@ -79,6 +79,7 @@ public class OAuth2Config {
             http
                     .authorizeRequests()
                     .antMatchers("/users/signup/**").permitAll()
+                    .antMatchers("/**/admin/**").hasRole("ADMIN")
                     .anyRequest().authenticated();
         }
 

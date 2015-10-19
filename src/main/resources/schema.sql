@@ -57,11 +57,26 @@ create table if not exists oauth_code (
   code VARCHAR(256), authentication BLOB
 );
 
+CREATE TABLE `role` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
+CREATE TABLE `user_role` (
+  `user_id` bigint(20) NOT NULL,
+  `role_id` bigint(20) NOT NULL,
+  PRIMARY KEY (`user_id`,`role_id`),
+  KEY `FK_role_id` (`role_id`),
+  CONSTRAINT `FK_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
+  CONSTRAINT `FK_role_id` FOREIGN KEY (`role_id`) REFERENCES `role` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin ;
 
-INSERT IGNORE  INTO `users`(username, `email`, `password`, `enabled`) VALUES ('jamie', 'jamie.greeman@gmail.com', 'jamie', 1);
-INSERT IGNORE  INTO `users`(username, `email`, `password`, `enabled`) VALUES ('admin', 'admin@zanvork.com', 'admin', 0);
+INSERT IGNORE INTO `role` (name) VALUES ('ROLE_USER'), ('ROLE_ADMIN');
 
+INSERT IGNORE  INTO `users`(username, `email`, `password`, `enabled`) VALUES ('admin', 'admin@zanvork.com', '$2a$10$I.1Wat.m0hUhEx7q.4sUNeD2a2M0ETpTeifSq0WO1lm5tJtkM/f6O', 1);
+
+INSERT IGNORE INTO user_role VALUES (1, 1), (1, 2);
 
 DELETE FROM `oauth_client_details` WHERE client_id = 'clientapp';
 INSERT IGNORE INTO `oauth_client_details` (`client_id`, `resource_ids`, `client_secret`, `scope`, `authorized_grant_types`, `web_server_redirect_uri`, `authorities`, `access_token_validity`, `refresh_token_validity`, `additional_information`, `autoapprove`) VALUES('clientapp','GuildHubV3','123456','read,write','password,refresh_token','','USER',NULL,NULL,'{}','');

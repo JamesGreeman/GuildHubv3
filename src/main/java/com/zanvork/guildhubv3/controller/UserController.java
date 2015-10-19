@@ -42,8 +42,8 @@ public class UserController {
     }
     
     @RequestMapping(value = "/admin/password/{username}/{newPassword}", method = RequestMethod.PUT)
-    public String adminChangePassword(@PathVariable String username, @PathVariable String newPassword, Principal principal){
-        if (userService.updatePasswordForUser(principal.getName(), username, newPassword) != null){
+    public String adminChangePassword(@PathVariable String username, @PathVariable String newPassword){
+        if (userService.updatePasswordForUser(username, newPassword) != null){
             return "Successfully updated password for " + username;
         } 
         return "Failed to update " + username + "'s password";

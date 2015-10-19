@@ -94,18 +94,13 @@ public class UserService implements UserDetailsService, BackendService {
         return user;
     }
      
-    public User updatePasswordForUser(String adminName, String username, String newPassword){
-        User admin  =   getUser(adminName);
-        User user   =   null;
-        //TODO implement an admin role and chack for this method
-        if (admin != null && false){
-            user   =   getUser(username);
-            if (user != null){
-                user.setPasswordHash(passwordEncoder.encode(newPassword));
-                saveUser(user);
-            } else {
-                user = null;
-            }
+    public User updatePasswordForUser(String username, String newPassword){
+        User user   =   getUser(username);
+        if (user != null){
+            user.setPasswordHash(passwordEncoder.encode(newPassword));
+            saveUser(user);
+        } else {
+            user = null;
         }
         return user;
     }
