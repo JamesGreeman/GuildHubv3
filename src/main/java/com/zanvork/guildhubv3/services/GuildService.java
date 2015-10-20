@@ -2,6 +2,7 @@ package com.zanvork.guildhubv3.services;
 
 import com.zanvork.battlenet.model.RestCharacter;
 import com.zanvork.battlenet.model.RestGuild;
+import com.zanvork.battlenet.service.RestObjectNotFoundException;
 import com.zanvork.battlenet.service.WarcraftAPIService;
 import com.zanvork.guildhubv3.model.Guild;
 import com.zanvork.guildhubv3.model.GuildMember;
@@ -9,6 +10,7 @@ import com.zanvork.guildhubv3.model.WarcraftCharacter;
 import com.zanvork.guildhubv3.model.dao.GuildDAO;
 import java.util.HashMap;
 import java.util.Map;
+import org.hibernate.HibernateException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,9 +51,20 @@ public class GuildService implements BackendService{
      * @param id id of the guild
      * @return the guild with that id
      */
-    public Guild getGuild(long id){
+    private Guild getGuild(long id){
         synchronized(guildsLock){
             return guilds.get(id);
+        }
+    }
+    
+    /**
+     * Check if a guild with a specific key exists within the cache
+     * @param key the key identifying the guild
+     * @return whether a guild with this key exists
+     */
+    private boolean guildExists(String key){
+        synchronized(guildsByNameLock){
+            return guildsByName.containsKey(key);
         }
     }
     
@@ -60,10 +73,19 @@ public class GuildService implements BackendService{
      * @param key the key to load the guild from.
      * @return the guild with the key specified
      */
-    public Guild getGuild(String key){
+    private Guild getGuild(String key){
+        Guild guild;
         synchronized(guildsByNameLock){
-            return guildsByName.get(key);
+            guild = guildsByName.get(key);
         }
+        if (guild == null){
+            EntityNotFoundException e =   new EntityNotFoundException(
+                    "Could not load guild entity with key '" + key + "'."
+            );
+            log.error("Error in GuildService - getGuild method", e);
+            throw e;
+        }
+        return guild;
     }
     
     /**
@@ -72,8 +94,10 @@ public class GuildService implements BackendService{
      * @param realm realm the guild is in
      * @param region region the realm is on
      * @return the guild matching these parameters
+     * @throws EntityNotFoundException if the requested guild does not exist
      */
-    public Guild getGuild(String name, String realm, String region){
+    public Guild getGuild(String name, String realm, String region)
+            throws EntityNotFoundException {
         String key  =   guildNameRealmRegionToKey(name, realm, region);
         Guild guild =   getGuild(key);
         return guild;
@@ -86,16 +110,21 @@ public class GuildService implements BackendService{
      * @param region region the realm is on
      * @return the new guild created
      */
-    public Guild createGuild(String name, String realm, String region){
-        Guild guild         =   null;
-        RestGuild guildData =   apiService.getGuild(region, realm, name);
-        if (guildData != null){
-            guild   =   new Guild();
-            guild.setName(guildData.getName());
-            guild.setRealm(dataService.getRealm(DataService.realmNameRegionToKey(realm, region)));
-            
-            updateGuild(guild, guildData);
+    public Guild createGuild(String name, String realm, String region)
+            throws RestObjectNotFoundException, EntityAlreadyExistsException {
+        
+        String key  =   guildNameRealmRegionToKey(name, realm, region);
+        if (guildExists(key)){
+            EntityAlreadyExistsException e  =   new EntityAlreadyExistsException(
+                    "Could not create guild with key '" + key + "', a guild with that key already exists");
+            log.error("Error in GuildService - createGuild method", e);
+            throw e;
         }
+        RestGuild guildData =   apiService.getGuild(region, realm, name);
+        Guild guild   =   new Guild();
+        guild.setName(guildData.getName());
+        guild.setRealm(dataService.getRealm(DataService.realmNameRegionToKey(realm, region)));
+        updateGuild(guild, guildData);
         return guild;
     }
     
@@ -106,13 +135,13 @@ public class GuildService implements BackendService{
      * @param region region the realm is on
      * @return the updated guild
      */
-    public Guild updateGuild(String name, String realm, String region){
+    public Guild updateGuild(String name, String realm, String region)
+            throws EntityNotFoundException, RestObjectNotFoundException{
+        
         String key          =   guildNameRealmRegionToKey(name, realm, region);
         Guild guild         =   getGuild(key);
         RestGuild guildData =   apiService.getGuild(region, realm, name);
-        if (guild != null && guildData != null){
-            updateGuild(guild, guildData);
-        }
+        updateGuild(guild, guildData);
         return guild;
     }
     
@@ -123,13 +152,13 @@ public class GuildService implements BackendService{
      * @param region region the realm is on
      * @return The updated guild
      */
-    public Guild updateGuildMembers(String name, String realm, String region){
+    public Guild updateGuildMembers(String name, String realm, String region)
+            throws EntityNotFoundException, RestObjectNotFoundException{
+        
         String key          =   guildNameRealmRegionToKey(name, realm, region);
         Guild guild         =   getGuild(key);
         RestGuild guildData =   apiService.getGuild(region, realm, name);
-        if (guild != null && guildData != null){
-            updateGuild(guild, guildData, true);
-        }
+        updateGuild(guild, guildData, true);
         return guild;
     }
     
@@ -212,12 +241,10 @@ public class GuildService implements BackendService{
         return name.toLowerCase() + "_" + realm.toLowerCase() + "_" + region.toLowerCase();
     }
     
-    private void saveGuild(Guild guild){
-         try {
-            guildDAO.save(guild);
-        } catch (Exception e){
-            log.error("Failed to save guild with id: " + guild.getId(), e);
-        }
+    private void saveGuild(Guild guild)
+            throws HibernateException{
+        
+        guildDAO.save(guild);
         
         synchronized(guildsLock){
             guilds.put(guild.getId(), guild);
