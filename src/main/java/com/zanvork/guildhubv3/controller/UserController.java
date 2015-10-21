@@ -35,18 +35,14 @@ public class UserController {
     
     @RequestMapping(value = "/password/{oldPassword}/{newPassword}", method = RequestMethod.PUT)
     public String changePassword(@PathVariable String oldPassword, @PathVariable String newPassword, Principal principal){
-        if (userService.updatePassword(principal.getName(), oldPassword, newPassword) != null){
-            return "Successfully updated your password";
-        } 
-        return "Failed to update your password";
+        userService.updatePassword(principal.getName(), oldPassword, newPassword);
+        return "Successfully updated your password";
     }
     
     @RequestMapping(value = "/admin/password/{username}/{newPassword}", method = RequestMethod.PUT)
     public String adminChangePassword(@PathVariable String username, @PathVariable String newPassword){
-        if (userService.updatePasswordForUser(username, newPassword) != null){
-            return "Successfully updated password for " + username;
-        } 
-        return "Failed to update " + username + "'s password";
+        userService.updatePasswordForUser(username, newPassword);
+        return "Successfully updated password for " + username;
         
     }
 }

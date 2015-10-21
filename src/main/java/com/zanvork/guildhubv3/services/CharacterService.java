@@ -4,6 +4,7 @@ import com.zanvork.battlenet.model.RestCharacter;
 import com.zanvork.battlenet.model.RestCharacterItems;
 import com.zanvork.battlenet.model.RestCharacterTalents;
 import com.zanvork.battlenet.model.RestItem;
+import com.zanvork.battlenet.service.RestObjectNotFoundException;
 import com.zanvork.battlenet.service.WarcraftAPIService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -11,7 +12,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import com.zanvork.guildhubv3.model.WarcraftCharacter;
 import com.zanvork.guildhubv3.model.CharacterItem;
 import com.zanvork.guildhubv3.model.CharacterSpec;
-import com.zanvork.guildhubv3.model.dao.CharacterItemDAO;
 import com.zanvork.guildhubv3.model.dao.WarcraftCharacterDAO;
 import com.zanvork.guildhubv3.model.enums.ItemSlots;
 import java.util.ArrayList;
@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.hibernate.HibernateException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 /**
@@ -38,15 +39,11 @@ public class CharacterService implements BackendService{
     //DAOs
     @Autowired
     private WarcraftCharacterDAO characterDAO;
-    @Autowired
-    private CharacterItemDAO characterItemDAO;
     
     private final Logger log  =   LoggerFactory.getLogger(this.getClass());
     
     private Map<Long, WarcraftCharacter> characters         =   new HashMap<>();
     private Map<String, WarcraftCharacter> charactersByName =   new HashMap<>();
-    
-    private final List<CharacterItem> itemsToRemove             =   new ArrayList<>();
     
     private final Object 
             charactersLock          =   new Object(),
@@ -57,8 +54,19 @@ public class CharacterService implements BackendService{
      * @param id id of the character 
      * @return character object requested (null if does not exist)
      */
-    public WarcraftCharacter getCharacter(long id){
+    private WarcraftCharacter getCharacter(long id){
         return characters.get(id);
+    }
+    
+    /**
+     * Check if a character with a specific key exists within the cache
+     * @param key the key identifying the character
+     * @return whether a character with this key exists
+     */
+    private boolean characterExists(String key){
+        synchronized(charactersByNameLock){
+            return charactersByName.containsKey(key);
+        }
     }
     
     /**
@@ -66,8 +74,20 @@ public class CharacterService implements BackendService{
      * @param key
      * @return the character associated with the key
      */
-    public WarcraftCharacter getCharacter(String key){
-        return charactersByName.get(key);
+    private WarcraftCharacter getCharacter(String key)
+            throws EntityNotFoundException{
+        WarcraftCharacter character;
+        synchronized(charactersByNameLock){
+            character = charactersByName.get(key);
+        }
+        if (character == null){
+            EntityNotFoundException e =   new EntityNotFoundException(
+                    "Could not load Character entity with key '" + key + "'."
+            );
+            log.error("Error in CharacterService - getCharacter method", e);
+            throw e;
+        }
+        return character;
     }
     
     /**
@@ -79,7 +99,9 @@ public class CharacterService implements BackendService{
      * @param region region the realm is in
      * @return character loaded or created
      */
-    public WarcraftCharacter getCharacter(String name, String realm, String region){
+    public WarcraftCharacter getCharacter(String name, String realm, String region)
+            throws EntityNotFoundException {
+        
         String key                  =   characterNameRealmRegionToKey(name, realm, region);
         WarcraftCharacter character =   getCharacter(key);
         return character;
@@ -92,7 +114,9 @@ public class CharacterService implements BackendService{
      * @param region region the realm is in
      * @return the new character
      */
-    public WarcraftCharacter createCharacter(String name, String realm, String region){
+    public WarcraftCharacter createCharacter(String name, String realm, String region)
+            throws RestObjectNotFoundException, EntityAlreadyExistsException {
+        
         return createCharacter(name, realm, region, false);
     }
     /**
@@ -103,19 +127,24 @@ public class CharacterService implements BackendService{
      * @param updateDetails whether to load data from the rest API to update
      * @return the new character
      */
-    public WarcraftCharacter createCharacter(String name, String realm, String region, boolean updateDetails){
-        WarcraftCharacter character =   getCharacter(name, realm, region);
-        if (character == null){
-            character   =   new WarcraftCharacter();
-            character.setName(name);
-            character.setRealm(dataService.getRealm(DataService.realmNameRegionToKey(realm, region)));
-            if (updateDetails){
-                RestCharacter characterData =   apiService.getCharacter(region, realm, name);
-                if (characterData != null){
-                    updateCharacter(character, characterData);
-                }
-            }
+    public WarcraftCharacter createCharacter(String name, String realm, String region, boolean updateDetails)
+            throws RestObjectNotFoundException, EntityAlreadyExistsException {
+        
+        String key  =   characterNameRealmRegionToKey(name, realm, region);
+        if (characterExists(key)){
+            EntityAlreadyExistsException e  =   new EntityAlreadyExistsException(
+                    "Could not create character with key '" + key + "', a character with that key already exists");
+            log.error("Error in CharacterService - createCharacter method", e);
+            throw e;
         }
+        WarcraftCharacter character =   new WarcraftCharacter();
+        character.setName(name);
+        character.setRealm(dataService.getRealm(realm, region));
+        if (updateDetails){
+            RestCharacter characterData =   apiService.getCharacter(region, realm, name);
+            updateCharacter(character, characterData);
+        }
+        
         return character;
     }
     
@@ -126,13 +155,13 @@ public class CharacterService implements BackendService{
      * @param region region the realm is in
      * @return the updated character
      */
-    public WarcraftCharacter updateCharacter(String name, String realm, String region){
+    public WarcraftCharacter updateCharacter(String name, String realm, String region)
+            throws EntityNotFoundException, RestObjectNotFoundException{
+        
         String key                  =   characterNameRealmRegionToKey(name, realm, region);
         WarcraftCharacter character =   getCharacter(key);
         RestCharacter characterData =   apiService.getCharacter(region, realm, name);
-        if (character != null && characterData != null){
-            updateCharacter(character, characterData);
-        }
+        updateCharacter(character, characterData);
         return character;
     }
     
@@ -218,7 +247,11 @@ public class CharacterService implements BackendService{
      * @return a unique key
      */
     public static String characterToKey(WarcraftCharacter character){
-        return characterNameRealmRegionToKey(character.getName(), character.getRealm().getName(), character.getRealm().getRegion().name());
+        String key  =   "null";
+        if (character != null){
+            key = characterNameRealmRegionToKey(character.getName(), character.getRealm().getName(), character.getRealm().getRegion().name());
+        }
+        return key;
     }
     
     /**
@@ -229,7 +262,11 @@ public class CharacterService implements BackendService{
      * @return a unique identifier for this character
      */
     public static String characterNameRealmRegionToKey(String name, String realm, String region){
-        return name.toLowerCase() + "_" + realm.toLowerCase() + "_" + region.toLowerCase();
+        String key  =   "null";
+        if (name != null && realm != null && region != null){
+            key =   name.toLowerCase() + "_" + realm.toLowerCase() + "_" + region.toLowerCase();
+        } 
+        return key;
     }
     
     
@@ -237,12 +274,9 @@ public class CharacterService implements BackendService{
         characters.forEach(character -> saveCharacter(character));
     }
     
-    public void saveCharacter(WarcraftCharacter character){
-        try{
-            characterDAO.save(character);
-        } catch (Exception e){
-            log.error("Failed to save character with id: " + character.getId(), e);
-        }
+    public void saveCharacter(WarcraftCharacter character)
+            throws HibernateException{
+        characterDAO.save(character);
        
         synchronized(charactersLock){
             characters.put(character.getId(), character);
@@ -258,14 +292,7 @@ public class CharacterService implements BackendService{
     @Scheduled(fixedDelay=TIME_15_SECOND)
     @Override
     public void updateToBackend(){
-        synchronized(itemsToRemove){
-            try{
-            characterItemDAO.delete(itemsToRemove);
-            } catch (Exception e){
-                log.error("Failed to remove item", e);
-            }
-            itemsToRemove.clear();
-        }
+        
     }
     /**
      * Loads object from the backend database into memory.

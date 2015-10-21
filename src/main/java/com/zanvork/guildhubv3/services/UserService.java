@@ -9,12 +9,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import org.hibernate.HibernateException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -42,10 +42,21 @@ public class UserService implements UserDetailsService, BackendService {
     
     private final BCryptPasswordEncoder passwordEncoder =   new BCryptPasswordEncoder();
     
-    public User getUser(String username){
+    public User getUser(String username)
+            throws EntityNotFoundException{
+        
+        User user;
         synchronized(usersByNameLock){
-            return usersByName.get(username);
+            user = usersByName.get(username);
         }
+        if (user == null){
+            EntityNotFoundException e =   new EntityNotFoundException(
+                    "Could not load User entity with username '" + username + "'."
+            );
+            log.error("Error in UserService - getUser method", e);
+            throw e;
+        }
+        return user;
     }
     
     
@@ -81,32 +92,31 @@ public class UserService implements UserDetailsService, BackendService {
        return user;
     }
     
-    public User updatePassword(String username, String oldPassword, String newPassword){
+    public void updatePassword(String username, String oldPassword, String newPassword)
+            throws EntityNotFoundException, NotAuthenticatedException{
+        
         User user   =   getUser(username);
-        if (user != null){
-            if (BCrypt.checkpw(oldPassword, user.getPasswordHash())){
-                user.setPasswordHash(passwordEncoder.encode(newPassword));
-                saveUser(user);
-            } else {
-                user = null;
-            }
-        }
-        return user;
-    }
-     
-    public User updatePasswordForUser(String username, String newPassword){
-        User user   =   getUser(username);
-        if (user != null){
+        if (BCrypt.checkpw(oldPassword, user.getPasswordHash())){
             user.setPasswordHash(passwordEncoder.encode(newPassword));
             saveUser(user);
         } else {
-            user = null;
+            NotAuthenticatedException e =   new NotAuthenticatedException(
+                    "Was unable to authenticate user '" + username + "' as the passwords did not match"
+            );
+            throw e;
         }
-        return user;
+    }
+     
+    public void updatePasswordForUser(String username, String newPassword){
+        User user   =   getUser(username);
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        saveUser(user);
     }
     
     
-    public void saveUser(User user){
+    public void saveUser(User user)
+            throws HibernateException {
+        
         userDAO.save(user);
         
         synchronized (usersLock){
@@ -118,7 +128,9 @@ public class UserService implements UserDetailsService, BackendService {
     }
     
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String username) 
+            throws UsernameNotFoundException {
+        
         User user = userDAO.findOneByUsername(username).get();
         if (user == null) {
             throw new UsernameNotFoundException(String.format("User %s does not exist!", username));
@@ -126,20 +138,11 @@ public class UserService implements UserDetailsService, BackendService {
         return new UserRepositoryUserDetails(user);
     }
 
-    public static User getCurrentUser(){
-        User user   =   null;
-        try {
-            user    =   (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        } catch (Exception e){
-            log.error("Could not load user from context", e);
-        }
-        return user;
-    }
 
     @Scheduled(fixedDelay=TIME_15_SECOND)
     @Override
     public void updateFromBackend() {
-           updateUsersFromBackend();
+        updateUsersFromBackend();
     }
     
     /**

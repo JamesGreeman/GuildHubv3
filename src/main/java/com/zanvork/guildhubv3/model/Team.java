@@ -3,6 +3,7 @@ package com.zanvork.guildhubv3.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.zanvork.guildhubv3.model.enums.Regions;
 import com.zanvork.guildhubv3.services.CharacterService;
+import com.zanvork.guildhubv3.services.EntityNotFoundException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -15,7 +16,6 @@ import javax.persistence.Enumerated;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
-import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.Transient;
@@ -55,11 +55,25 @@ public class Team {
         members.add(member);
     }
     
-    public TeamMember getMember(String key){
+    public boolean hasMember(String key){  if (membersMap.size() != members.size()){
+            updateMembersMap();
+        }
+        return membersMap.containsKey(key);
+    }
+    
+    public TeamMember getMember(String key)
+            throws EntityNotFoundException{
         if (membersMap.size() != members.size()){
             updateMembersMap();
         }
-        return membersMap.get(key);
+        TeamMember  member  =   membersMap.get(key);
+        if (member == null){
+            EntityNotFoundException e   =   new EntityNotFoundException(
+                    "Team '" + name + "' on region '" + region.name() + "' does not contain a member with key '" + key + "'."
+            );
+            throw e;
+        }
+        return member;
     }
     
     private void updateMembersMap(){

@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.hibernate.HibernateException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,7 +49,7 @@ public class DataService implements BackendService{
     
     private Map<String, Realm> realms                           =   new HashMap<>();
     private Map<Long, CharacterClass> characterClasses          =   new HashMap<>();
-    private Map<String, CharacterSpec> characterSpecs             =   new HashMap<>();
+    private Map<String, CharacterSpec> characterSpecs           =   new HashMap<>();
     
     private final List<Realm> realmsToSave                      =   new ArrayList<>();
     private final List<CharacterClass> characterClassesToSave   =   new ArrayList<>();
@@ -63,10 +64,36 @@ public class DataService implements BackendService{
      * @param key the realm key required
      * @return realm requested
      */
-    public Realm getRealm(String key){
+    private Realm getRealm(String key)
+            throws EntityNotFoundException{
+        
+        Realm realm;
         synchronized(realmsLock){
-            return realms.get(key);
+            realm = realms.get(key);
         }
+        if (realm == null){
+            EntityNotFoundException e =   new EntityNotFoundException(
+                    "Could not load Realm entity with key '" + key + "'."
+            );
+            log.error("Error in DataService - getRealm method", e);
+            throw e;
+        }
+        return realm;
+    }
+    
+    /**
+     * Load a realm based off the region and realm name strings provided   
+     * @param realmName name of the realm
+     * @param region region the realm is in
+     * @return the realm object
+     * @throws EntityNotFoundException 
+     */
+    public Realm getRealm(String realmName, String region)
+            throws EntityNotFoundException {
+        
+        String key                  =   realmNameRegionToKey(realmName, region);
+        Realm realm =   getRealm(key);
+        return realm;
     }
     
     /**
@@ -74,10 +101,21 @@ public class DataService implements BackendService{
      * @param id the class id required
      * @return class requested
      */
-    public CharacterClass getCharacterClass(long id){
+    public CharacterClass getCharacterClass(long id)
+            throws EntityNotFoundException{
+        
+        CharacterClass characterClass;
         synchronized(characterClassesLock){
-            return characterClasses.get(id);
+            characterClass = characterClasses.get(id);
         }
+        if (characterClass == null){
+            EntityNotFoundException e =   new EntityNotFoundException(
+                    "Could not load CharacterClass entity with id '" + id + "'."
+            );
+            log.error("Error in DataService - getCharacterClass method", e);
+            throw e;
+        }
+        return characterClass;
     }
     
     
@@ -86,7 +124,7 @@ public class DataService implements BackendService{
      * @param key the spec key required
      * @return spec requested
      */
-    public CharacterSpec getCharacterSpec(String key){
+    private CharacterSpec getCharacterSpec(String key){
         synchronized(characterSpecsLock){
             return characterSpecs.get(key);
         }        
@@ -116,15 +154,13 @@ public class DataService implements BackendService{
      * @param specName name of the spec
      * @return the new spec that has been created
      */
-    public CharacterSpec createCharacterSpec(long classId, String specName){
+    public CharacterSpec createCharacterSpec(long classId, String specName)
+            throws HibernateException {
+        
         CharacterSpec spec  =   new CharacterSpec();
         spec.setCharacterClass(getCharacterClass(classId));
         spec.setSpecName(specName);
-        try{
-            characterSpecDAO.save(spec);
-        } catch (Exception e){
-            log.error("Failed to save spec", e);
-        }
+        characterSpecDAO.save(spec);
         return spec;
     }
     /**
@@ -133,7 +169,11 @@ public class DataService implements BackendService{
      * @return the key
      */
     public static String realmToKey(Realm realm){
-        return realmNameRegionToKey(realm.getName(),realm.getRegion().name());
+        String key  =   "null";
+        if (realm != null){
+            key = realmNameRegionToKey(realm.getName(),realm.getRegion().name());
+        }
+        return key;
     }
     
     /**
@@ -143,7 +183,11 @@ public class DataService implements BackendService{
      * @return lower case concatenated string.
      */
     public static String realmNameRegionToKey(String realmName, String region){
-        return realmName.toLowerCase() + "_" + region.toLowerCase();
+        String key  =   "null";
+        if (realmName != null && region != null){
+            key =   realmName.toLowerCase() + "_" + region.toLowerCase();
+        } 
+        return key;
     }
     
     
@@ -153,7 +197,11 @@ public class DataService implements BackendService{
      * @return the key
      */
     public static String characterSpecToKey(CharacterSpec characterSpec){
-        return classIDSpecNameToKey(characterSpec.getCharacterClass().getId(),characterSpec.getSpecName());
+        String key  =   "-1_" + DEFAULT_SPEC_NAME;
+        if (characterSpec != null){
+            key = classIDSpecNameToKey(characterSpec.getCharacterClass().getId(),characterSpec.getSpecName());
+        }
+        return key;
     }
     
     /**

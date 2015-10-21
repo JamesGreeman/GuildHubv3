@@ -73,14 +73,16 @@ public class GuildService implements BackendService{
      * @param key the key to load the guild from.
      * @return the guild with the key specified
      */
-    private Guild getGuild(String key){
+    private Guild getGuild(String key)
+            throws EntityNotFoundException{
+        
         Guild guild;
         synchronized(guildsByNameLock){
             guild = guildsByName.get(key);
         }
         if (guild == null){
             EntityNotFoundException e =   new EntityNotFoundException(
-                    "Could not load guild entity with key '" + key + "'."
+                    "Could not load Guild entity with key '" + key + "'."
             );
             log.error("Error in GuildService - getGuild method", e);
             throw e;
@@ -94,10 +96,10 @@ public class GuildService implements BackendService{
      * @param realm realm the guild is in
      * @param region region the realm is on
      * @return the guild matching these parameters
-     * @throws EntityNotFoundException if the requested guild does not exist
      */
     public Guild getGuild(String name, String realm, String region)
             throws EntityNotFoundException {
+        
         String key  =   guildNameRealmRegionToKey(name, realm, region);
         Guild guild =   getGuild(key);
         return guild;
@@ -123,7 +125,7 @@ public class GuildService implements BackendService{
         RestGuild guildData =   apiService.getGuild(region, realm, name);
         Guild guild   =   new Guild();
         guild.setName(guildData.getName());
-        guild.setRealm(dataService.getRealm(DataService.realmNameRegionToKey(realm, region)));
+        guild.setRealm(dataService.getRealm(realm, region));
         updateGuild(guild, guildData);
         return guild;
     }
@@ -227,7 +229,11 @@ public class GuildService implements BackendService{
      * @return a unique key
      */
     public static String guildToKey(Guild guild){
-        return guildNameRealmRegionToKey(guild.getName(), guild.getRealm().getName(), guild.getRealm().getRegion().name());
+        String key  =   "null";
+        if (guild != null){
+            key = guildNameRealmRegionToKey(guild.getName(), guild.getRealm().getName(), guild.getRealm().getRegion().name());
+        }
+        return key;
     }
     
     /**
@@ -238,7 +244,11 @@ public class GuildService implements BackendService{
      * @return a unique identifier for this guild
      */
     public static String guildNameRealmRegionToKey(String name, String realm, String region){
-        return name.toLowerCase() + "_" + realm.toLowerCase() + "_" + region.toLowerCase();
+        String key  =   "null";
+        if (name != null && realm != null && region != null){
+            key =   name.toLowerCase() + "_" + realm.toLowerCase() + "_" + region.toLowerCase();
+        } 
+        return key;
     }
     
     private void saveGuild(Guild guild)
