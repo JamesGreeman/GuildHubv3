@@ -6,6 +6,8 @@ import com.zanvork.battlenet.service.RestObjectNotFoundException;
 import com.zanvork.battlenet.service.WarcraftAPIService;
 import com.zanvork.guildhubv3.model.Guild;
 import com.zanvork.guildhubv3.model.GuildMember;
+import com.zanvork.guildhubv3.model.Role;
+import com.zanvork.guildhubv3.model.User;
 import com.zanvork.guildhubv3.model.WarcraftCharacter;
 import com.zanvork.guildhubv3.model.dao.GuildDAO;
 import java.util.HashMap;
@@ -81,11 +83,9 @@ public class GuildService implements BackendService{
             guild = guildsByName.get(key);
         }
         if (guild == null){
-            EntityNotFoundException e =   new EntityNotFoundException(
+            throw new EntityNotFoundException(
                     "Could not load Guild entity with key '" + key + "'."
             );
-            log.error("Error in GuildService - getGuild method", e);
-            throw e;
         }
         return guild;
     }
@@ -107,23 +107,23 @@ public class GuildService implements BackendService{
     
     /**
      * Create a guild from a guild name, realm and region.
+     * @param user
      * @param name name of the guild
      * @param realm realm the guild is in
      * @param region region the realm is on
      * @return the new guild created
      */
-    public Guild createGuild(String name, String realm, String region)
+    public Guild createGuild(User user, String name, String realm, String region)
             throws RestObjectNotFoundException, EntityAlreadyExistsException {
         
         String key  =   guildNameRealmRegionToKey(name, realm, region);
         if (guildExists(key)){
-            EntityAlreadyExistsException e  =   new EntityAlreadyExistsException(
+            throw new EntityAlreadyExistsException(
                     "Could not create guild with key '" + key + "', a guild with that key already exists");
-            log.error("Error in GuildService - createGuild method", e);
-            throw e;
         }
         RestGuild guildData =   apiService.getGuild(region, realm, name);
         Guild guild   =   new Guild();
+        guild.setOwner(user);
         guild.setName(guildData.getName());
         guild.setRealm(dataService.getRealm(realm, region));
         updateGuild(guild, guildData);
@@ -132,16 +132,19 @@ public class GuildService implements BackendService{
     
     /**
      * Update guild from guild name, realm and region.
+     * @param user
      * @param name name of the guild
      * @param realm realm the guild is in
      * @param region region the realm is on
      * @return the updated guild
      */
-    public Guild updateGuild(String name, String realm, String region)
-            throws EntityNotFoundException, RestObjectNotFoundException{
+    public Guild updateGuild(User user, String name, String realm, String region)
+            throws EntityNotFoundException, RestObjectNotFoundException, ReadOnlyEntityException, NotAuthorizedException{
         
         String key          =   guildNameRealmRegionToKey(name, realm, region);
         Guild guild         =   getGuild(key);
+        
+        userCanEditGuild(user, guild);    
         RestGuild guildData =   apiService.getGuild(region, realm, name);
         updateGuild(guild, guildData);
         return guild;
@@ -149,16 +152,19 @@ public class GuildService implements BackendService{
     
     /**
      * Update guild members from guild name, realm and region.
+     * @param user
      * @param name name of the guild
      * @param realm realm the guild is in
      * @param region region the realm is on
      * @return The updated guild
      */
-    public Guild updateGuildMembers(String name, String realm, String region)
+    public Guild updateGuildMembers(User user, String name, String realm, String region)
             throws EntityNotFoundException, RestObjectNotFoundException{
         
         String key          =   guildNameRealmRegionToKey(name, realm, region);
         Guild guild         =   getGuild(key);
+        
+        userCanEditGuild(user, guild);
         RestGuild guildData =   apiService.getGuild(region, realm, name);
         updateGuild(guild, guildData, true);
         return guild;
@@ -201,7 +207,7 @@ public class GuildService implements BackendService{
                 String realm    =   characterData.getRealm();
                 WarcraftCharacter character =   characterService.getCharacter(name, realm, region);
                 if (character == null){
-                    character   =   characterService.createCharacter(name, realm, region, false);
+                    character   =   characterService.createCharacter(name, realm, region);
                 } 
                 if (character != null){
                     String key          =   CharacterService.characterToKey(character);
@@ -220,6 +226,57 @@ public class GuildService implements BackendService{
             }
         });
         saveGuild(guild);
+    }
+    
+    private boolean userCanChangeGuildOwner(User user, Guild guild)
+            throws OwnershipLockedException, NotAuthorizedException{
+        
+         String errorText    =   "Cannot change ownership of guild with name '" + 
+                guild.getName() + "' on realm '" + 
+                guild.getRealm().getRegion().name() + "-"  + guild.getRealm().getName() + "'.";
+        //Check the guild is not read only
+        if (guild.isOwnershipLocked()){
+            throw new OwnershipLockedException(
+                    errorText + "  It has been had it's ownership locked."
+            );
+        }
+        //Check if user is an admin
+        if (!user.hasRole(Role.ROLE_ADMIN)){
+            if (user.getId() != guild.getOwner().getId()){
+                throw new NotAuthorizedException(
+                        errorText + "  User does has neither admin rights nor owns the object"
+                );
+            }
+        }
+        return true;
+    }
+    
+    private boolean userCanEditGuild(User user, Guild guild)
+            throws ReadOnlyEntityException, NotAuthorizedException{
+        
+        String errorText    =   "Cannot update guild with name '" + 
+                guild.getName() + "' on realm '" + 
+                guild.getRealm().getRegion().name() + "-"  + guild.getRealm().getName() + "'.";
+        
+        //Take ownership of a guild when updating it if not already owned.
+        if (guild.getOwner() == null && guild.isOwnershipLocked()){
+            guild.setOwner(user);
+        }
+        //Check the guild is not read only
+        if (guild.isReadOnly()){
+            throw new ReadOnlyEntityException(
+                    errorText + "  It has been flagged as read only"
+            );
+        }
+        //Check if user is an admin
+        if (!user.hasRole(Role.ROLE_ADMIN)){
+            if (user.getId() != guild.getOwner().getId()){
+                throw new NotAuthorizedException(
+                        errorText + "  User does has neither admin rights nor owns the object"
+                );
+            }
+        }
+        return true;
     }
     
     

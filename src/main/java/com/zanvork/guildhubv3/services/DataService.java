@@ -72,11 +72,9 @@ public class DataService implements BackendService{
             realm = realms.get(key);
         }
         if (realm == null){
-            EntityNotFoundException e =   new EntityNotFoundException(
+            throw new EntityNotFoundException(
                     "Could not load Realm entity with key '" + key + "'."
             );
-            log.error("Error in DataService - getRealm method", e);
-            throw e;
         }
         return realm;
     }
@@ -109,11 +107,9 @@ public class DataService implements BackendService{
             characterClass = characterClasses.get(id);
         }
         if (characterClass == null){
-            EntityNotFoundException e =   new EntityNotFoundException(
+            throw new EntityNotFoundException(
                     "Could not load CharacterClass entity with id '" + id + "'."
             );
-            log.error("Error in DataService - getCharacterClass method", e);
-            throw e;
         }
         return characterClass;
     }

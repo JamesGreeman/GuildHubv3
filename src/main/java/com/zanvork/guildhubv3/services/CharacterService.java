@@ -12,6 +12,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import com.zanvork.guildhubv3.model.WarcraftCharacter;
 import com.zanvork.guildhubv3.model.CharacterItem;
 import com.zanvork.guildhubv3.model.CharacterSpec;
+import com.zanvork.guildhubv3.model.Role;
+import com.zanvork.guildhubv3.model.User;
 import com.zanvork.guildhubv3.model.dao.WarcraftCharacterDAO;
 import com.zanvork.guildhubv3.model.enums.ItemSlots;
 import java.util.ArrayList;
@@ -81,11 +83,9 @@ public class CharacterService implements BackendService{
             character = charactersByName.get(key);
         }
         if (character == null){
-            EntityNotFoundException e =   new EntityNotFoundException(
+            throw new EntityNotFoundException(
                     "Could not load Character entity with key '" + key + "'."
             );
-            log.error("Error in CharacterService - getCharacter method", e);
-            throw e;
         }
         return character;
     }
@@ -117,30 +117,32 @@ public class CharacterService implements BackendService{
     public WarcraftCharacter createCharacter(String name, String realm, String region)
             throws RestObjectNotFoundException, EntityAlreadyExistsException {
         
-        return createCharacter(name, realm, region, false);
+        return createCharacter(null, name, realm, region, false);
     }
     /**
      * Create a new character from a name, region and realm.
+     * @param user
      * @param name name of the character.
      * @param realm realm the character is on
      * @param region region the realm is in
      * @param updateDetails whether to load data from the rest API to update
      * @return the new character
      */
-    public WarcraftCharacter createCharacter(String name, String realm, String region, boolean updateDetails)
+    public WarcraftCharacter createCharacter(User user, String name, String realm, String region, boolean updateDetails)
             throws RestObjectNotFoundException, EntityAlreadyExistsException {
         
         String key  =   characterNameRealmRegionToKey(name, realm, region);
         if (characterExists(key)){
-            EntityAlreadyExistsException e  =   new EntityAlreadyExistsException(
-                    "Could not create character with key '" + key + "', a character with that key already exists");
-            log.error("Error in CharacterService - createCharacter method", e);
-            throw e;
+            throw new EntityAlreadyExistsException(
+                    "Could not create character with key '" + key + "', a character with that key already exists"
+            );
         }
+        
         WarcraftCharacter character =   new WarcraftCharacter();
         character.setName(name);
         character.setRealm(dataService.getRealm(realm, region));
         if (updateDetails){
+            character.setOwner(user);
             RestCharacter characterData =   apiService.getCharacter(region, realm, name);
             updateCharacter(character, characterData);
         }
@@ -150,16 +152,19 @@ public class CharacterService implements BackendService{
     
     /**
      * Updates a character from a name, region and realm.
+     * @param user
      * @param name name of the character.
      * @param realm realm the character is on
      * @param region region the realm is in
      * @return the updated character
      */
-    public WarcraftCharacter updateCharacter(String name, String realm, String region)
-            throws EntityNotFoundException, RestObjectNotFoundException{
+    public WarcraftCharacter updateCharacter(User user, String name, String realm, String region)
+            throws EntityNotFoundException, RestObjectNotFoundException,ReadOnlyEntityException, NotAuthorizedException{
         
         String key                  =   characterNameRealmRegionToKey(name, realm, region);
         WarcraftCharacter character =   getCharacter(key);
+        
+        userCanEditCharacter(user, character);
         RestCharacter characterData =   apiService.getCharacter(region, realm, name);
         updateCharacter(character, characterData);
         return character;
@@ -239,6 +244,58 @@ public class CharacterService implements BackendService{
                     newItems.add(item);
                 });
         character.setItems(newItems);
+    }
+    
+    
+    private boolean userCanChangeCharacterOwner(User user, WarcraftCharacter character)
+            throws OwnershipLockedException, NotAuthorizedException{
+        
+         String errorText    =   "Cannot change ownership of character with name '" + 
+                character.getName() + "' on realm '" + 
+                character.getRealm().getRegion().name() + "-"  + character.getRealm().getName() + "'.";
+        //Check the character is not read only
+        if (character.isOwnershipLocked()){
+            throw new OwnershipLockedException(
+                    errorText + "  It has been had it's ownership locked."
+            );
+        }
+        //Check if user is an admin
+        if (!user.hasRole(Role.ROLE_ADMIN)){
+            if (user.getId() != character.getOwner().getId()){
+                throw new NotAuthorizedException(
+                        errorText + "  User does has neither admin rights nor owns the object"
+                );
+            }
+        }
+        return true;
+    }
+    
+    private boolean userCanEditCharacter(User user, WarcraftCharacter character)
+            throws ReadOnlyEntityException, NotAuthorizedException{
+        
+        String errorText    =   "Cannot update character with name '" + 
+                character.getName() + "' on realm '" + 
+                character.getRealm().getRegion().name() + "-"  + character.getRealm().getName() + "'.";
+        
+        //Take ownership of a character when updating it if not already owned.
+        if (character.getOwner() == null && character.isOwnershipLocked()){
+            character.setOwner(user);
+        }
+        //Check the character is not read only
+        if (character.isReadOnly()){
+            throw new ReadOnlyEntityException(
+                    errorText + "  It has been flagged as read only"
+            );
+        }
+        //Check if user is an admin
+        if (!user.hasRole(Role.ROLE_ADMIN)){
+            if (user.getId() != character.getOwner().getId()){
+                throw new NotAuthorizedException(
+                        errorText + "  User does has neither admin rights nor owns the object"
+                );
+            }
+        }
+        return true;
     }
     
     /**

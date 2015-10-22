@@ -16,6 +16,7 @@ import javax.persistence.Enumerated;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
+import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.Transient;
@@ -85,4 +86,11 @@ public class Team {
             membersMap.put(CharacterService.characterToKey(member.getMember()), member);
         });
     }
+    
+    @ManyToOne
+    private User owner;
+    
+    private boolean ownershipLocked =   false;
+    
+    private boolean readOnly    =   false;
 }

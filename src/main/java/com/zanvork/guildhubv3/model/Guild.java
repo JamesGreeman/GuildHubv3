@@ -47,4 +47,11 @@ public class Guild implements Serializable {
     public void addMember(GuildMember member){
         members.add(member);
     }
+    
+    @ManyToOne
+    private User owner;
+    
+    private boolean ownershipLocked =   false;
+    
+    private boolean readOnly    =   false;
 }

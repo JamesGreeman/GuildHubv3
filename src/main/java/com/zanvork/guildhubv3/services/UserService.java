@@ -50,11 +50,9 @@ public class UserService implements UserDetailsService, BackendService {
             user = usersByName.get(username);
         }
         if (user == null){
-            EntityNotFoundException e =   new EntityNotFoundException(
+            throw new EntityNotFoundException(
                     "Could not load User entity with username '" + username + "'."
             );
-            log.error("Error in UserService - getUser method", e);
-            throw e;
         }
         return user;
     }
@@ -92,18 +90,16 @@ public class UserService implements UserDetailsService, BackendService {
        return user;
     }
     
-    public void updatePassword(String username, String oldPassword, String newPassword)
+    public void updatePassword(User user, String oldPassword, String newPassword)
             throws EntityNotFoundException, NotAuthenticatedException{
         
-        User user   =   getUser(username);
         if (BCrypt.checkpw(oldPassword, user.getPasswordHash())){
             user.setPasswordHash(passwordEncoder.encode(newPassword));
             saveUser(user);
         } else {
-            NotAuthenticatedException e =   new NotAuthenticatedException(
-                    "Was unable to authenticate user '" + username + "' as the passwords did not match"
+            throw new NotAuthenticatedException(
+                    "Was unable to authenticate user '" + user.getUsername() + "' as the passwords did not match"
             );
-            throw e;
         }
     }
      

@@ -58,4 +58,8 @@ public class User implements Serializable {
         roles           =   user.getRoles();
     }
     
+    public boolean hasRole(String roleName){
+        return roles.stream().anyMatch((role) -> (role.getName().equals(roleName)));
+    }
+    
 }

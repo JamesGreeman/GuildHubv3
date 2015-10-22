@@ -59,5 +59,12 @@ public class WarcraftCharacter implements Serializable {
     @OneToOne(mappedBy = "member")
     private GuildMember guildMember;
     
+    @ManyToOne
+    private User owner;
+    
+    private boolean ownershipLocked =   false;
+    
+    private boolean readOnly    =   false;
+    
     
 }

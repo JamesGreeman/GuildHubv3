@@ -38,11 +38,9 @@ public class WarcraftAPIService {
         try {
             return new RestTemplate().getForObject(url, RestCharacter.class);
         } catch (HttpClientErrorException e){
-            RestObjectNotFoundException ex  =   new RestObjectNotFoundException(
+            throw new RestObjectNotFoundException(
                     "Could not load character object using URL '" + url + "'."
             );
-            log.error("Error is WarcraftAPIService - getCharacter method",  ex);
-            throw ex;
         }        
     }
     
@@ -63,11 +61,9 @@ public class WarcraftAPIService {
         try {
             guild   =   new RestTemplate().getForObject(url, RestGuild.class);
         } catch (HttpClientErrorException e){
-            RestObjectNotFoundException ex  =   new RestObjectNotFoundException(
+            throw new RestObjectNotFoundException(
                     "Could not load guild object using URL '" + url + "'."
             );
-            log.error("Error is WarcraftAPIService - getGuild" + url,  ex);
-            throw ex;
         }
         if (getMemberDetails && guild != null){
             guild.getMembers().stream().forEach((member) -> {
@@ -87,11 +83,9 @@ public class WarcraftAPIService {
         try {
             return new RestTemplate().getForObject(url, RestRealms.class).getRealms();
         } catch (HttpClientErrorException e){
-            RestObjectNotFoundException ex  =   new RestObjectNotFoundException(
+            throw new RestObjectNotFoundException(
                     "Could not load realms object using URL '" + url + "'."
             );
-            log.error("Error is WarcraftAPIService - getRealms method",  ex);
-            throw ex;
         } 
     }  
     
@@ -104,11 +98,9 @@ public class WarcraftAPIService {
         try {
             return new RestTemplate().getForObject(url, RestClasses.class).getClasses();
         } catch (HttpClientErrorException e){
-            RestObjectNotFoundException ex  =   new RestObjectNotFoundException(
+            throw new RestObjectNotFoundException(
                     "Could not load classes object using URL '" + url + "'."
             );
-            log.error("Error is WarcraftAPIService - getClasses method",  ex);
-            throw ex;
         } 
     }
     /**
@@ -120,11 +112,9 @@ public class WarcraftAPIService {
         try {
             return new RestTemplate().getForObject(url, RestRaces.class).getRaces();
         } catch (HttpClientErrorException e){
-            RestObjectNotFoundException ex  =   new RestObjectNotFoundException(
+            throw new RestObjectNotFoundException(
                     "Could not load races object using URL '" + url + "'."
             );
-            log.error("Error is WarcraftAPIService - getRaces method",  ex);
-            throw ex;
         } 
     }
     
@@ -133,11 +123,9 @@ public class WarcraftAPIService {
         try {
             return new RestTemplate().getForObject(url, RestItem.class);
         } catch (HttpClientErrorException e){
-            RestObjectNotFoundException ex  =   new RestObjectNotFoundException(
+            throw new RestObjectNotFoundException(
                     "Could not load item object using URL '" + url + "'."
             );
-            log.error("Error is WarcraftAPIService - getItem method",  ex);
-            throw ex;
         } 
     }
 }

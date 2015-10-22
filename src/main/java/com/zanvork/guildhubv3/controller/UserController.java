@@ -1,5 +1,6 @@
 package com.zanvork.guildhubv3.controller;
 
+import com.zanvork.guildhubv3.model.User;
 import com.zanvork.guildhubv3.services.UserService;
 import java.security.Principal;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,13 +15,17 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/users")
-public class UserController {
+public class UserController extends RESTController {
     
     @Autowired
     private UserService userService;
     
     @RequestMapping(value = "/signup/{userName}/{email}/{password}", method = RequestMethod.POST)
-    public String addUser(@PathVariable String userName, @PathVariable String email, @PathVariable String password){
+    public String addUser(
+            @PathVariable String userName, 
+            @PathVariable String email, 
+            @PathVariable String password){
+        
         if (userService.createUser(userName, email, password) != null){
             return "Successfully created user.";
         }
@@ -29,18 +34,29 @@ public class UserController {
     
     
     @RequestMapping(value = "/admin/{username}", method = RequestMethod.DELETE)
-    public String removeUser(@PathVariable String username, Principal principal){
+    public String removeUser(
+            Principal principal,
+            @PathVariable String username){
+        
         return "Not yet implemented";
     }
     
     @RequestMapping(value = "/password/{oldPassword}/{newPassword}", method = RequestMethod.PUT)
-    public String changePassword(@PathVariable String oldPassword, @PathVariable String newPassword, Principal principal){
-        userService.updatePassword(principal.getName(), oldPassword, newPassword);
+    public String changePassword(
+            Principal principal, 
+            @PathVariable String oldPassword, 
+            @PathVariable String newPassword){
+        
+        User user    =   getActiveUser(principal);
+        userService.updatePassword(user, oldPassword, newPassword);
         return "Successfully updated your password";
     }
     
     @RequestMapping(value = "/admin/password/{username}/{newPassword}", method = RequestMethod.PUT)
-    public String adminChangePassword(@PathVariable String username, @PathVariable String newPassword){
+    public String adminChangePassword(
+            @PathVariable String username, 
+            @PathVariable String newPassword){
+        
         userService.updatePasswordForUser(username, newPassword);
         return "Successfully updated password for " + username;
         
