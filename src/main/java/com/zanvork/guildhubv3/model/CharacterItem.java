@@ -13,16 +13,19 @@ import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 /**
  *
  * @author zanvork
  */
-@Entity
+
 @Data
-@ToString(exclude = {"owner"})
+@EqualsAndHashCode(exclude="owner")
+@ToString(exclude="owner")
 @JsonIgnoreProperties("owner")
+@Entity
 @Table(uniqueConstraints=@UniqueConstraint(columnNames={"slot", "owner"}))
 public class CharacterItem implements Serializable {
     @Id

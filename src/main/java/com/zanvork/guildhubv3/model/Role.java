@@ -1,6 +1,7 @@
 package com.zanvork.guildhubv3.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.HashSet;
 import java.util.Set;
 import javax.persistence.Entity;
@@ -9,6 +10,9 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.ManyToMany;
 import javax.persistence.Table;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import org.hibernate.validator.constraints.NotEmpty;
 import org.springframework.security.core.GrantedAuthority;
 
@@ -16,6 +20,11 @@ import org.springframework.security.core.GrantedAuthority;
  *
  * @author zanvork
  */
+
+@Data
+@EqualsAndHashCode(exclude="users")
+@ToString(exclude="users")
+@JsonIgnoreProperties("users")
 @Entity
 @Table(name = "role")
 public class Role implements GrantedAuthority {

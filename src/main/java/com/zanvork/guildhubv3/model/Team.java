@@ -21,14 +21,18 @@ import javax.persistence.Table;
 import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 /**
  *
  * @author zanvork
  */
-@Entity
 @Data
+@EqualsAndHashCode(exclude="membersMap")
+@ToString(exclude="membersMap")
 @JsonIgnoreProperties("membersMap")
+@Entity
 @Table(uniqueConstraints=@UniqueConstraint(columnNames={"name", "region"}))
 public class Team {
     

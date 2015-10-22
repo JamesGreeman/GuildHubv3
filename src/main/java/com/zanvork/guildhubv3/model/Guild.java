@@ -15,44 +15,34 @@ import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
 /**
  *
  * @author zanvork
  */
+
+@Data
 @Entity
 @Table(uniqueConstraints=@UniqueConstraint(columnNames={"name", "realm"}))
 public class Guild implements Serializable {
     @Id
-    @Getter
-    @Setter
     @GeneratedValue      
     private long id;
     
     @Column(nullable = false)
-    @Getter
-    @Setter
     private String name;
     
     @ManyToOne 
     @JoinColumn(nullable = false)
-    @Getter
-    @Setter
     private Realm realm;
     
-    @Getter
-    @Setter
     @OneToMany(mappedBy = "guild", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval=true)
     private List<GuildMember> members  =   new ArrayList<>();
     
-    @Getter
-    @Setter
     @JoinColumn(nullable = false)
     @OneToOne(cascade = CascadeType.ALL)
     private WarcraftCharacter leader;
-    
     
     public void addMember(GuildMember member){
         members.add(member);

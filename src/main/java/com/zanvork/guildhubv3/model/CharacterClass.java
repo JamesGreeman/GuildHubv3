@@ -10,8 +10,8 @@ import lombok.Data;
  *
  * @author zanvork
  */
-@Entity
 @Data
+@Entity
 public class CharacterClass implements Serializable {
     @Id
     private long id;

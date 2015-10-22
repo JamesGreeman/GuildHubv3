@@ -1,6 +1,5 @@
 package com.zanvork.guildhubv3.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
@@ -20,8 +19,9 @@ import lombok.Data;
  *
  * @author zanvork
  */
-@Entity
+
 @Data
+@Entity
 @Table(name = "users")
 public class User implements Serializable {
     @Id
@@ -41,10 +41,9 @@ public class User implements Serializable {
     @Column(name="enabled", nullable = false)
     private boolean enabled;
         
-	@JsonIgnore
-	@ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-	@JoinTable(name = "user_role", joinColumns = { @JoinColumn(name = "user_id") }, inverseJoinColumns = { @JoinColumn(name = "role_id") })
-	private Set<Role> roles = new HashSet<>();
+    @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @JoinTable(name = "user_role", joinColumns = { @JoinColumn(name = "user_id") }, inverseJoinColumns = { @JoinColumn(name = "role_id") })
+    private Set<Role> roles = new HashSet<>();
     
     public User(){
         

@@ -9,32 +9,31 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToOne;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 /**
  *
  * @author zanvork
  */
-@Entity
+
+@Data
+@EqualsAndHashCode(exclude="guild")
+@ToString(exclude="guild")
 @JsonIgnoreProperties("guild")
+@Entity
 public class GuildMember implements Serializable {
     @Id
     @GeneratedValue
     private long id;
     
-    @Getter
-    @Setter
     @ManyToOne
     private Guild guild;
     
-    @Getter
-    @Setter
     @JoinColumn(unique = true)
     @OneToOne(cascade = CascadeType.ALL)
     private WarcraftCharacter member;
     
-    @Getter
-    @Setter
     private int rank;
 }

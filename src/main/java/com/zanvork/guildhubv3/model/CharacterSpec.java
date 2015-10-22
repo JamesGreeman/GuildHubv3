@@ -12,8 +12,9 @@ import lombok.Data;
  *
  * @author zanvork
  */
-@Entity
+
 @Data
+@Entity
 public class CharacterSpec implements Serializable {
     @Id 
     @GeneratedValue
