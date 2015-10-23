@@ -12,12 +12,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 import com.zanvork.guildhubv3.model.WarcraftCharacter;
 import com.zanvork.guildhubv3.model.CharacterItem;
 import com.zanvork.guildhubv3.model.CharacterSpec;
-import com.zanvork.guildhubv3.model.Role;
 import com.zanvork.guildhubv3.model.User;
 import com.zanvork.guildhubv3.model.dao.WarcraftCharacterDAO;
 import com.zanvork.guildhubv3.model.enums.ItemSlots;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +27,7 @@ import org.slf4j.LoggerFactory;
  * @author zanvork
  */
 @Service
-public class CharacterService implements BackendService{
+public class CharacterService extends OwnedEntityBackendService<WarcraftCharacter>{
     //Battlenet Services
     @Autowired
     private WarcraftAPIService apiService;
@@ -37,71 +35,12 @@ public class CharacterService implements BackendService{
     //Backend Service
     @Autowired
     private DataService dataService;
+    
     @Autowired
-    private UserService userService;
-
-    //DAOs
-    @Autowired
-    private WarcraftCharacterDAO characterDAO;
+    private WarcraftCharacterDAO dao; 
     
     private final Logger log  =   LoggerFactory.getLogger(this.getClass());
-    
-    private Map<Long, WarcraftCharacter> characters         =   new HashMap<>();
-    private Map<String, WarcraftCharacter> charactersByName =   new HashMap<>();
-    
-    private final Object 
-            charactersLock          =   new Object(),
-            charactersByNameLock    =   new Object();
-    
-    /**
-     * Returns a character from the cache by id.
-     * @param id id of the character 
-     * @return character object requested (null if does not exist)
-     */
-    public WarcraftCharacter getCharacter(long id)
-            throws EntityNotFoundException{
-        
-        WarcraftCharacter team;
-        synchronized(charactersLock){
-            team = characters.get(id);
-        }
-        if (team == null){
-            throw new EntityNotFoundException(
-                    "Could not load WarcraftCharacter entity with id '" + id + "'."
-            );
-        }
-        return team;
-    }
-    
-    /**
-     * Check if a character with a specific key exists within the cache
-     * @param key the key identifying the character
-     * @return whether a character with this key exists
-     */
-    private boolean characterExists(String key){
-        synchronized(charactersByNameLock){
-            return charactersByName.containsKey(key);
-        }
-    }
-    
-    /**
-     * Loads a character from the cache based on a unique key.
-     * @param key
-     * @return the character associated with the key
-     */
-    private WarcraftCharacter getCharacter(String key)
-            throws EntityNotFoundException{
-        WarcraftCharacter character;
-        synchronized(charactersByNameLock){
-            character = charactersByName.get(key);
-        }
-        if (character == null){
-            throw new EntityNotFoundException(
-                    "Could not load Character entity with key '" + key + "'."
-            );
-        }
-        return character;
-    }
+   
     
     /**
      * Get a character from a name, realm and region.
@@ -116,7 +55,7 @@ public class CharacterService implements BackendService{
             throws EntityNotFoundException {
         
         String key                  =   characterNameRealmRegionToKey(name, realm, region);
-        WarcraftCharacter character =   getCharacter(key);
+        WarcraftCharacter character =   getEntity(key);
         return character;
     }
     
@@ -145,7 +84,7 @@ public class CharacterService implements BackendService{
             throws RestObjectNotFoundException, EntityAlreadyExistsException {
         
         String key  =   characterNameRealmRegionToKey(name, realm, region);
-        if (characterExists(key)){
+        if (entityExists(key)){
             throw new EntityAlreadyExistsException(
                     "Could not create character with key '" + key + "', a character with that key already exists"
             );
@@ -172,38 +111,15 @@ public class CharacterService implements BackendService{
     public WarcraftCharacter updateCharacter(User user, long id)
             throws EntityNotFoundException, RestObjectNotFoundException,ReadOnlyEntityException, NotAuthorizedException{
         
-        WarcraftCharacter character =   getCharacter(id);
+        WarcraftCharacter character =   getEntity(id);
         
-        userCanEditCharacter(user, character);
+        userCanEditEntity(user, character);
         RestCharacter characterData =   apiService.getCharacter(character.getName(), character.getRealm().getName(), character.getRealm().getRegionName());
         updateCharacter(character, characterData);
         return character;
     }
     
-    
-    public WarcraftCharacter changeUser(User user, long characterId, long userId)
-            throws EntityNotFoundException, ReadOnlyEntityException, OwnershipLockedException, NotAuthorizedException{
-        
-        WarcraftCharacter character =   getCharacter(characterId);
-        User newUser    =   userService.getUser(userId);
-        userCanChangeCharacterOwner(newUser, character);
-        character.setOwner(newUser);
-        saveCharacter(character);
-        return character;
-    }
-    
-    
-    
-    public WarcraftCharacter setCharacterLocked(User user, long characterId, boolean locked)
-            throws EntityNotFoundException, ReadOnlyEntityException, NotAuthorizedException{
-        
-        WarcraftCharacter character =   getCharacter(characterId);
-        userCanEditCharacter(user, character);
-        character.setOwnershipLocked(locked);
-        saveCharacter(character);
-        return character;
-    }
-    
+   
     /**
      * Updates character information from a RestCharacter object.
      * @param character WarcraftCharacter to update
@@ -217,7 +133,7 @@ public class CharacterService implements BackendService{
         character.setAverageItemLevel(characterData.getItems().getAverageItemLevel());
         setCharacterItems(character, characterData.getItems());
 
-        saveCharacter(character);
+        saveEntity(character);
     }
     
     /**
@@ -281,63 +197,13 @@ public class CharacterService implements BackendService{
     }
     
     
-    private boolean userCanChangeCharacterOwner(User user, WarcraftCharacter character)
-            throws OwnershipLockedException, NotAuthorizedException{
-        
-         String errorText    =   "Cannot change ownership of character with name '" + 
-                character.getName() + "' on realm '" + 
-                character.getRealm().getRegion().name() + "-"  + character.getRealm().getName() + "'.";
-        //Check the character is not read only
-        if (character.isOwnershipLocked()){
-            throw new OwnershipLockedException(
-                    errorText + "  It has been had it's ownership locked."
-            );
-        }
-        //Check if user is an admin
-        if (!user.hasRole(Role.ROLE_ADMIN)){
-            if (user.getId() != character.getOwner().getId()){
-                throw new NotAuthorizedException(
-                        errorText + "  User does has neither admin rights nor owns the object"
-                );
-            }
-        }
-        return true;
-    }
-    
-    private boolean userCanEditCharacter(User user, WarcraftCharacter character)
-            throws ReadOnlyEntityException, NotAuthorizedException{
-        
-        String errorText    =   "Cannot update character with name '" + 
-                character.getName() + "' on realm '" + 
-                character.getRealm().getRegion().name() + "-"  + character.getRealm().getName() + "'.";
-        
-        //Take ownership of a character when updating it if not already owned.
-        if (character.getOwner() == null && character.isOwnershipLocked()){
-            character.setOwner(user);
-        }
-        //Check the character is not read only
-        if (character.isReadOnly()){
-            throw new ReadOnlyEntityException(
-                    errorText + "  It has been flagged as read only"
-            );
-        }
-        //Check if user is an admin
-        if (!user.hasRole(Role.ROLE_ADMIN)){
-            if (user.getId() != character.getOwner().getId()){
-                throw new NotAuthorizedException(
-                        errorText + "  User does has neither admin rights nor owns the object"
-                );
-            }
-        }
-        return true;
-    }
-    
     /**
      * Takes a character and generates a unique string key.
      * @param character
      * @return a unique key
      */
-    public static String characterToKey(WarcraftCharacter character){
+    @Override
+    public String entityToKey(WarcraftCharacter character){
         String key  =   "null";
         if (character != null){
             key = characterNameRealmRegionToKey(character.getName(), character.getRealm().getName(), character.getRealm().getRegion().name());
@@ -360,23 +226,6 @@ public class CharacterService implements BackendService{
         return key;
     }
     
-    
-    public void saveCharacters(Collection<WarcraftCharacter> characters){
-        characters.forEach(character -> saveCharacter(character));
-    }
-    
-    public void saveCharacter(WarcraftCharacter character)
-            throws HibernateException{
-        characterDAO.save(character);
-       
-        synchronized(charactersLock){
-            characters.put(character.getId(), character);
-        }
-        synchronized(charactersByNameLock){
-            charactersByName.put(characterToKey(character), character);
-        }
-    }
-    
     /**
      * Store all objects currently cached in service.
      */
@@ -391,27 +240,35 @@ public class CharacterService implements BackendService{
     @Scheduled(fixedDelay=TIME_15_SECOND)
     @Override
     public void updateFromBackend(){
-        loadCharactersFromBackend();
+        loadEntitiesFromBackend();
     }
-    
-    /**
-     * Load all characters from the characterDAO and store them in the characters 
-     * map in the service.
-     * Uses Character's id as key
-     */    
-    private void loadCharactersFromBackend(){
-        Map<Long, WarcraftCharacter> newCharacters          =   new HashMap<>();
-        Map<String, WarcraftCharacter> newCharactersByName  =   new HashMap<>();
-        characterDAO.findAll().forEach(character -> {
-            newCharacters.put(character.getId(), character);
-            newCharactersByName.put(characterToKey(character), character);
+
+    @Override
+    protected void saveEntity(WarcraftCharacter entity) throws HibernateException{
+        dao.save(entity);
+       
+        synchronized(entitiesLock){
+            entities.put(entity.getId(), entity);
+        }
+        synchronized(entitiesByNameLock){
+            entitiesByName.put(entityToKey(entity), entity);
+        }
+    }
+
+    @Override
+    protected void loadEntitiesFromBackend() {
+        Map<Long, WarcraftCharacter> newEntities          =   new HashMap<>();
+        Map<String, WarcraftCharacter> newEntitiesByName  =   new HashMap<>();
+        dao.findAll().forEach(entity -> {
+            newEntities.put(entity.getId(), entity);
+            newEntitiesByName.put(entityToKey(entity), entity);
         });
-        synchronized (charactersLock){
-            characters    =   newCharacters;
+        synchronized (entitiesLock){
+            entities    =   newEntities;
         }
-        synchronized (charactersByNameLock){
-            charactersByName    =   newCharactersByName;
+        synchronized (entitiesByNameLock){
+            entitiesByName    =   newEntitiesByName;
         }
     }
-    
+
 }

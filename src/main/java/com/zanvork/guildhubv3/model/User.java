@@ -25,9 +25,9 @@ import lombok.ToString;
  */
 
 @Data
-@EqualsAndHashCode(exclude={"passwordHash", "characters", "guilds", "teams"})
-@ToString(exclude={"passwordHash", "characters", "guilds", "teams"})
-@JsonIgnoreProperties({"passwordHash", "characters", "guilds", "teams"} )
+@EqualsAndHashCode(exclude={"passwordHash", "password", "characters", "guilds", "teams"})
+@ToString(exclude={"passwordHash", "password", "characters", "guilds", "teams"})
+@JsonIgnoreProperties({"passwordHash", "password", "characters", "guilds", "teams"} )
 @Entity
 @Table(name = "users")
 public class User implements Serializable {

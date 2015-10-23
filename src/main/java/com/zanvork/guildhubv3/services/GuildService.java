@@ -6,7 +6,6 @@ import com.zanvork.battlenet.service.RestObjectNotFoundException;
 import com.zanvork.battlenet.service.WarcraftAPIService;
 import com.zanvork.guildhubv3.model.Guild;
 import com.zanvork.guildhubv3.model.GuildMember;
-import com.zanvork.guildhubv3.model.Role;
 import com.zanvork.guildhubv3.model.User;
 import com.zanvork.guildhubv3.model.WarcraftCharacter;
 import com.zanvork.guildhubv3.model.dao.GuildDAO;
@@ -24,7 +23,7 @@ import org.springframework.stereotype.Service;
  * @author zanvork
  */
 @Service
-public class GuildService implements BackendService{
+public class GuildService extends OwnedEntityBackendService<Guild>{
     //Battlenet Services
     @Autowired
     private WarcraftAPIService apiService;
@@ -34,72 +33,12 @@ public class GuildService implements BackendService{
     private DataService dataService;
     @Autowired
     private CharacterService characterService;
+    
+    
     @Autowired
-    private UserService userService;
+    private GuildDAO dao;
 
-    //DAOs
-    @Autowired
-    private GuildDAO guildDAO;
-    
     private final Logger log  =   LoggerFactory.getLogger(this.getClass());
-    
-    private Map<Long, Guild>    guilds          =   new HashMap<>();
-    private Map<String, Guild>  guildsByName    =   new HashMap<>();
-    
-    private final Object
-            guildsLock       =   new Object(),
-            guildsByNameLock =   new Object();
-   
-    /**
-     * Get a guild from the cache.
-     * @param id id of the guild
-     * @return the guild with that id
-     */
-    public Guild getGuild(long id)
-            throws EntityNotFoundException{
-        
-        Guild guild;
-        synchronized(guildsLock){
-            guild = guilds.get(id);
-        }
-        if (guild == null){
-            throw new EntityNotFoundException(
-                    "Could not load Guild entity with id '" + id + "'."
-            );
-        }
-        return guild;
-    }
-    
-    /**
-     * Check if a guild with a specific key exists within the cache
-     * @param key the key identifying the guild
-     * @return whether a guild with this key exists
-     */
-    private boolean guildExists(String key){
-        synchronized(guildsByNameLock){
-            return guildsByName.containsKey(key);
-        }
-    }
-    
-    /**
-     * Get guild from the cache using a unique key.
-     * @param key the key to load the guild from.
-     * @return the guild with the key specified
-     */
-    private Guild getGuild(String key)
-            throws EntityNotFoundException{
-        
-        Guild guild;
-        synchronized(guildsByNameLock){
-            guild = guildsByName.get(key);
-        }
-        if (guild == null){
-            throw new EntityNotFoundException(
-                    "Could not load Guild entity with key '" + key + "'."
-            );
-        }
-        return guild;
-    }
     
     /**
      * Get guild from cache from guild name, realm and region.
@@ -112,7 +51,7 @@ public class GuildService implements BackendService{
             throws EntityNotFoundException {
         
         String key  =   guildNameRealmRegionToKey(name, realm, region);
-        Guild guild =   getGuild(key);
+        Guild guild =   getEntity(key);
         return guild;
     }
     
@@ -128,7 +67,7 @@ public class GuildService implements BackendService{
             throws RestObjectNotFoundException, EntityAlreadyExistsException {
         
         String key  =   guildNameRealmRegionToKey(name, realm, region);
-        if (guildExists(key)){
+        if (entityExists(key)){
             throw new EntityAlreadyExistsException(
                     "Could not create guild with key '" + key + "', a guild with that key already exists");
         }
@@ -150,8 +89,8 @@ public class GuildService implements BackendService{
     public Guild updateGuild(User user, long id)
             throws EntityNotFoundException, RestObjectNotFoundException, ReadOnlyEntityException, NotAuthorizedException{
         
-        Guild guild         =   getGuild(id);
-        userCanEditGuild(user, guild);    
+        Guild guild         =   getEntity(id);
+        userCanEditEntity(user, guild);    
         RestGuild guildData =   apiService.getGuild(guild.getName(), guild.getRealm().getName(), guild.getRealm().getRegionName());
         updateGuild(guild, guildData);
         return guild;
@@ -166,31 +105,10 @@ public class GuildService implements BackendService{
     public Guild updateGuildMembers(User user, long id)
             throws EntityNotFoundException, RestObjectNotFoundException, ReadOnlyEntityException, NotAuthorizedException{
         
-        Guild guild         =   getGuild(id);
-        userCanEditGuild(user, guild);
+        Guild guild         =   getEntity(id);
+        userCanEditEntity(user, guild);
         RestGuild guildData =   apiService.getGuild(guild.getName(), guild.getRealm().getName(), guild.getRealm().getRegionName());
         updateGuild(guild, guildData, true);
-        return guild;
-    }
-    
-    public Guild changeUser(User user, long guildId, long userId)
-            throws EntityNotFoundException, ReadOnlyEntityException, OwnershipLockedException, NotAuthorizedException{
-        
-        Guild guild =   getGuild(guildId);
-        User newUser    =   userService.getUser(userId);
-        userCanChangeGuildOwner(newUser, guild);
-        guild.setOwner(newUser);
-        saveGuild(guild);
-        return guild;
-    }
-    
-    public Guild setGuildLocked(User user, long guildId, boolean locked)
-            throws EntityNotFoundException, ReadOnlyEntityException, NotAuthorizedException{
-        
-        Guild guild =   getGuild(guildId);
-        userCanEditGuild(user, guild);
-        guild.setOwnershipLocked(locked);
-        saveGuild(guild);
         return guild;
     }
     
@@ -217,7 +135,7 @@ public class GuildService implements BackendService{
             guild.getMembers().stream()
                     .forEach((member) -> {
                         member.setGuild(null);
-                        guildMembers.put(CharacterService.characterToKey(member.getMember()), member);
+                        guildMembers.put(characterService.entityToKey(member.getMember()), member);
                     });
             guild.getMembers().clear();
         }
@@ -234,7 +152,7 @@ public class GuildService implements BackendService{
                     character   =   characterService.createCharacter(name, realm, region);
                 } 
                 if (character != null){
-                    String key          =   CharacterService.characterToKey(character);
+                    String key          =   characterService.entityToKey(character);
                     GuildMember member  =   guildMembers.remove(key);
                     if (member == null){
                         member  =   new GuildMember();
@@ -249,61 +167,15 @@ public class GuildService implements BackendService{
                 }
             }
         });
-        saveGuild(guild);
+        saveEntity(guild);
     }
-    
-    private boolean userCanChangeGuildOwner(User user, Guild guild)
-            throws OwnershipLockedException, NotAuthorizedException{
-        
-         String errorText    =   "Cannot change ownership of guild with name '" + 
-                guild.getName() + "' on realm '" + 
-                guild.getRealm().getRegion().name() + "-"  + guild.getRealm().getName() + "'.";
-        //Check the guild is not read only
-        if (guild.isOwnershipLocked()){
-            throw new OwnershipLockedException(
-                    errorText + "  It has been had it's ownership locked."
-            );
-        }
-        
-        userCanEditGuild(user, guild);
-        return true;
-    }
-    
-    private boolean userCanEditGuild(User user, Guild guild)
-            throws ReadOnlyEntityException, NotAuthorizedException{
-        
-        String errorText    =   "Cannot update guild with name '" + 
-                guild.getName() + "' on realm '" + 
-                guild.getRealm().getRegion().name() + "-"  + guild.getRealm().getName() + "'.";
-        
-        //Take ownership of a guild when updating it if not already owned.
-        if (guild.getOwner() == null && guild.isOwnershipLocked()){
-            guild.setOwner(user);
-        }
-        //Check the guild is not read only
-        if (guild.isReadOnly()){
-            throw new ReadOnlyEntityException(
-                    errorText + "  It has been flagged as read only"
-            );
-        }
-        //Check if user is an admin
-        if (!user.hasRole(Role.ROLE_ADMIN)){
-            if (user.getId() != guild.getOwner().getId()){
-                throw new NotAuthorizedException(
-                        errorText + "  User does has neither admin rights nor owns the object"
-                );
-            }
-        }
-        return true;
-    }
-    
-    
     /**
      * Takes a guild and generates a unique string key.
      * @param guild
      * @return a unique key
      */
-    public static String guildToKey(Guild guild){
+    @Override
+    public String entityToKey(Guild guild){
         String key  =   "null";
         if (guild != null){
             key = guildNameRealmRegionToKey(guild.getName(), guild.getRealm().getName(), guild.getRealm().getRegion().name());
@@ -326,18 +198,6 @@ public class GuildService implements BackendService{
         return key;
     }
     
-    private void saveGuild(Guild guild)
-            throws HibernateException{
-        
-        guildDAO.save(guild);
-        
-        synchronized(guildsLock){
-            guilds.put(guild.getId(), guild);
-        }
-        synchronized(guildsByNameLock){
-            guildsByName.put(guildToKey(guild), guild);
-        }
-    }
     /**
      * Store all objects currently cached in service.
      */
@@ -352,25 +212,34 @@ public class GuildService implements BackendService{
     @Scheduled(fixedDelay=TIME_15_SECOND)
     @Override
     public void updateFromBackend(){
-        loadGuildsFromBackend();
+        loadEntitiesFromBackend();
     }
-    
-    /**
-     * Load all guilds from the guildDAO and store them in the guilds map in the service.
-     * Uses Guilds's id as key
-     */    
-    private void loadGuildsFromBackend(){
-        Map<Long, Guild> newGuilds          =   new HashMap<>();
-        Map<String, Guild> newGuildsByName  =   new HashMap<>();
-        guildDAO.findAll().forEach(guild -> {
-            newGuilds.put(guild.getId(), guild);
-            newGuildsByName.put(guildToKey(guild), guild);
-        });
-        synchronized (guildsLock){
-            guilds    =   newGuilds;
+
+    @Override
+    protected void saveEntity(Guild entity) throws HibernateException{
+        dao.save(entity);
+       
+        synchronized(entitiesLock){
+            entities.put(entity.getId(), entity);
         }
-        synchronized (guildsByNameLock){
-            guildsByName    =   newGuildsByName;
+        synchronized(entitiesByNameLock){
+            entitiesByName.put(entityToKey(entity), entity);
+        }
+    }
+
+    @Override
+    protected void loadEntitiesFromBackend() {
+        Map<Long, Guild> newEntities          =   new HashMap<>();
+        Map<String, Guild> newEntitiesByName  =   new HashMap<>();
+        dao.findAll().forEach(entity -> {
+            newEntities.put(entity.getId(), entity);
+            newEntitiesByName.put(entityToKey(entity), entity);
+        });
+        synchronized (entitiesLock){
+            entities    =   newEntities;
+        }
+        synchronized (entitiesByNameLock){
+            entitiesByName    =   newEntitiesByName;
         }
     }
 }

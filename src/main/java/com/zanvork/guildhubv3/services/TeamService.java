@@ -1,13 +1,13 @@
 package com.zanvork.guildhubv3.services;
 
 import com.zanvork.battlenet.service.RestObjectNotFoundException;
-import com.zanvork.guildhubv3.model.Role;
 import com.zanvork.guildhubv3.model.Team;
 import com.zanvork.guildhubv3.model.TeamMember;
 import com.zanvork.guildhubv3.model.User;
 import com.zanvork.guildhubv3.model.WarcraftCharacter;
 import com.zanvork.guildhubv3.model.dao.TeamDAO;
 import com.zanvork.guildhubv3.model.enums.Regions;
+import static com.zanvork.guildhubv3.services.BackendService.TIME_15_SECOND;
 import java.util.HashMap;
 import java.util.Map;
 import org.hibernate.HibernateException;
@@ -23,69 +23,21 @@ import org.springframework.stereotype.Service;
  * @author zanvork
  */
 @Service
-public class TeamService implements BackendService{
+public class TeamService extends OwnedEntityBackendService<Team>{
     //Backend services    
     @Autowired
     private CharacterService characterService;
+    
     @Autowired
-    private UserService userService;
-
-    //DAOs
-    @Autowired
-    private TeamDAO teamDAO;
+    private TeamDAO dao;
     
     private final Logger log  =   LoggerFactory.getLogger(this.getClass());
-    
-    private Map<Long, Team>    teams        =   new HashMap<>();
-    private Map<String, Team>  teamsByName  =   new HashMap<>();
-    
-    
-    private final Object
-            teamsLock       =   new Object(),
-            teamsByNameLock =   new Object();
-    
-    
-    private Team getTeam(long id)
-            throws EntityNotFoundException{
-        
-        Team team;
-        synchronized(teamsLock){
-            team = teams.get(id);
-        }
-        if (team == null){
-            throw new EntityNotFoundException(
-                    "Could not load Team entity with id '" + id + "'."
-            );
-        }
-        return team;
-    }
-    
-    private boolean teamExists(String key){
-        synchronized(teamsByNameLock){
-            return teamsByName.containsKey(key);
-        }
-    }
-    
-    private Team getTeam(String key)
-            throws EntityNotFoundException{
-        
-        Team team;
-        synchronized(teamsByNameLock){
-            team = teamsByName.get(key);
-        }
-        if (team == null){
-            throw new EntityNotFoundException(
-                    "Could not load Team entity with key '" + key + "'."
-            );
-        }
-        return team;
-    }
     
     public Team getTeam(String name, String region)
             throws EntityNotFoundException {
         
         String key  =   teamNameRegionToKey(name, region);
-        Team team   =   getTeam(key);
+        Team team   =   getEntity(key);
         return team;
     }
     
@@ -93,7 +45,7 @@ public class TeamService implements BackendService{
             throws RestObjectNotFoundException, EntityAlreadyExistsException {
         
         String key  =   teamNameRegionToKey(name, region);
-        if (teamExists(key)){
+        if (entityExists(key)){
             throw new EntityAlreadyExistsException(
                     "Could not create Team with key '" + key + "', a Team with that key already exists"
             );
@@ -102,30 +54,30 @@ public class TeamService implements BackendService{
         team.setOwner(user);
         team.setName(name);
         team.setRegion(Regions.valueOf(region.toUpperCase()));
-        saveTeam(team);
+        saveEntity(team);
         return team;
     }
     
     public void removeTeam(User user, long id, String password)
             throws EntityNotFoundException, ReadOnlyEntityException, NotAuthorizedException, NotAuthenticatedException{
         
-        Team team   =   getTeam(id);
-        userCanEditTeam(user, team);
+        Team team   =   getEntity(id);
+        userCanEditEntity(user, team);
         if (!BCrypt.checkpw(password, user.getPasswordHash())){
             throw new NotAuthenticatedException(
                     "Was unable to authenticate user '" + user.getUsername() + "' as the passwords did not match"
             );
         }
-        removeTeam(team);
+        saveEntity(team);
     }
     
     public void addMember(User user, long teamId, long characterId)
             throws EntityNotFoundException, EntityAlreadyExistsException, ReadOnlyEntityException, NotAuthorizedException{
         
-        Team team                       =   getTeam(teamId);
-        userCanEditTeam(user, team);
+        Team team                       =   getEntity(teamId);
+        userCanEditEntity(user, team);
         TeamMember teamMember           =   new TeamMember();
-        WarcraftCharacter character     =   characterService.getCharacter(characterId);
+        WarcraftCharacter character     =   characterService.getEntity(characterId);
         if (team.hasMember(characterId)){
             throw new EntityAlreadyExistsException(
                 "Cannot add character with id '" + teamId + "' to team with id '" + characterId + "'."
@@ -134,94 +86,23 @@ public class TeamService implements BackendService{
         }
         teamMember.setMember(character);
         team.addMember(teamMember);
-        saveTeam(team);
+        saveEntity(team);
         
     }
     
     public void removeMember(User user, long teamId, long characterId)
             throws EntityNotFoundException,ReadOnlyEntityException, NotAuthorizedException{
         
-        Team team               =   getTeam(teamId);
-        userCanEditTeam(user, team);
+        Team team               =   getEntity(teamId);
+        userCanEditEntity(user, team);
         TeamMember teamMember   =   team.getMember(characterId);
         team.getMembers().remove(teamMember);
-        saveTeam(team);
+        saveEntity(team);
         
     }
     
-    public Team changeUser(User user, long teamId, long userId)
-            throws EntityNotFoundException, ReadOnlyEntityException, OwnershipLockedException, NotAuthorizedException{
-        Team team =   getTeam(teamId);
-        User newUser    =   userService.getUser(userId);
-        userCanChangeTeamOwner(newUser, team);
-        team.setOwner(newUser);
-        saveTeam(team);
-        return team;
-    }
-    
-    
-    public Team setTeamLocked(User user, long teamId, boolean locked)
-            throws EntityNotFoundException, ReadOnlyEntityException, NotAuthorizedException{
-        
-        Team team =   getTeam(teamId);
-        userCanEditTeam(user, team);
-        team.setOwnershipLocked(locked);
-        saveTeam(team);
-        return team;
-    }
-    
-    private boolean userCanChangeTeamOwner(User user, Team team)
-            throws OwnershipLockedException, NotAuthorizedException{
-        
-         String errorText    =   "Cannot change ownership of team with name '" + 
-                team.getName() + "' on realm '" + 
-                team.getRegion().name() + "'.";
-        //Check the team is not read only
-        if (team.isOwnershipLocked()){
-            throw new OwnershipLockedException(
-                    errorText + "  It has been had it's ownership locked."
-            );
-        }
-        //Check if user is an admin
-        if (!user.hasRole(Role.ROLE_ADMIN)){
-            if (user.getId() != team.getOwner().getId()){
-                throw new NotAuthorizedException(
-                        errorText + "  User does has neither admin rights nor owns the object"
-                );
-            }
-        }
-        return true;
-    }
-    
-    private boolean userCanEditTeam(User user, Team team)
-            throws ReadOnlyEntityException, NotAuthorizedException{
-        
-        String errorText    =   "Cannot update character with name '" + 
-                team.getName() + "' in region '" + 
-                team.getRegion().name() + "'.";
-        
-        //Take ownership of a team when updating it if not already owned.
-        if (team.getOwner() == null && team.isOwnershipLocked()){
-            team.setOwner(user);
-        }
-        //Check the team is not read only
-        if (team.isReadOnly()){
-            throw new ReadOnlyEntityException(
-                    errorText + "  It has been flagged as read only"
-            );
-        }
-        //Check if user is an admin
-        if (!user.hasRole(Role.ROLE_ADMIN)){
-            if (user.getId() != team.getOwner().getId()){
-                throw new NotAuthorizedException(
-                        errorText + "  User does has neither admin rights nor owns the object"
-                );
-            }
-        }
-        return true;
-    }
-    
-    public static String teamToKey(Team team){
+    @Override
+    public String entityToKey(Team team){
         String key  =   "null";
         if (team != null){
             key = teamNameRegionToKey(team.getName(), team.getRegion().name());
@@ -237,31 +118,7 @@ public class TeamService implements BackendService{
         return key;
     }
     
-    private void saveTeam(Team team)
-            throws HibernateException {
-        
-        teamDAO.save(team);
-        
-        synchronized(teamsLock){
-            teams.put(team.getId(), team);
-        }
-        synchronized(teamsByNameLock){
-            teamsByName.put(teamToKey(team), team);
-        }
-    }
-    
-    private void removeTeam(Team team)
-            throws HibernateException {
-        
-        teamDAO.delete(team);
-        
-        synchronized(teamsLock){
-            teams.remove(team.getId());
-        }
-        synchronized(teamsByNameLock){
-            teamsByName.remove(teamToKey(team));
-        }
-    }
+   
     /**
      * Store all objects currently cached in service.
      */
@@ -275,25 +132,34 @@ public class TeamService implements BackendService{
     @Scheduled(fixedDelay=TIME_15_SECOND)
     @Override
     public void updateFromBackend(){
-        loadTeamsFromBackend();
+        loadEntitiesFromBackend();
     }
-    
-    /**
-     * Load all guilds from the guildDAO and store them in the guilds map in the service.
-     * Uses Guilds's id as key
-     */    
-    private void loadTeamsFromBackend(){
-        Map<Long, Team> newTeams            =   new HashMap<>();
-        Map<String, Team> newTeamsByName    =   new HashMap<>();
-        teamDAO.findAll().forEach(team -> {
-            newTeams.put(team.getId(), team);
-            newTeamsByName.put(teamToKey(team), team);
-        });
-        synchronized (teamsLock){
-            teams    =   newTeams;
+
+    @Override
+    protected void saveEntity(Team entity) throws HibernateException{
+        dao.save(entity);
+       
+        synchronized(entitiesLock){
+            entities.put(entity.getId(), entity);
         }
-        synchronized (teamsByNameLock){
-            teamsByName    =   newTeamsByName;
+        synchronized(entitiesByNameLock){
+            entitiesByName.put(entityToKey(entity), entity);
+        }
+    }
+
+    @Override
+    protected void loadEntitiesFromBackend() {
+        Map<Long, Team> newEntities          =   new HashMap<>();
+        Map<String, Team> newEntitiesByName  =   new HashMap<>();
+        dao.findAll().forEach(entity -> {
+            newEntities.put(entity.getId(), entity);
+            newEntitiesByName.put(entityToKey(entity), entity);
+        });
+        synchronized (entitiesLock){
+            entities    =   newEntities;
+        }
+        synchronized (entitiesByNameLock){
+            entitiesByName    =   newEntitiesByName;
         }
     }
 }

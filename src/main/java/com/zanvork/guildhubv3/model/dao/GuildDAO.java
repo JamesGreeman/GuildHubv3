@@ -7,6 +7,6 @@ import org.springframework.data.repository.CrudRepository;
  *
  * @author zanvork
  */
-public interface GuildDAO extends CrudRepository<Guild, Long>{
+public interface GuildDAO extends CrudRepository<Guild, Long> {
     
 }

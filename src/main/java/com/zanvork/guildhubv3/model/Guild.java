@@ -16,6 +16,7 @@ import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  *
@@ -23,12 +24,14 @@ import lombok.Data;
  */
 
 @Data
+@EqualsAndHashCode(callSuper=false)
 @Entity
 @Table(uniqueConstraints=@UniqueConstraint(columnNames={"name", "realm"}))
-public class Guild implements Serializable {
-    @Id
-    @GeneratedValue      
-    private long id;
+public class Guild implements Serializable, OwnedEntity {
+    
+    @Id 
+    @GeneratedValue
+    protected long id;
     
     @Column(nullable = false)
     private String name;
@@ -44,14 +47,15 @@ public class Guild implements Serializable {
     @OneToOne(cascade = CascadeType.ALL)
     private WarcraftCharacter leader;
     
-    public void addMember(GuildMember member){
-        members.add(member);
-    }
-    
     @ManyToOne
     private User owner;
     
-    private boolean ownershipLocked =   false;
+    private boolean readOnly;
     
-    private boolean readOnly    =   false;
+    private boolean ownershipLocked;
+    
+    public void addMember(GuildMember member){
+        members.add(member);
+    }
+   
 }

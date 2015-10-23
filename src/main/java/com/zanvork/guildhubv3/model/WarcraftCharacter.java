@@ -25,15 +25,16 @@ import lombok.ToString;
  */
 
 @Data
-@EqualsAndHashCode(exclude="guildMember")
+@EqualsAndHashCode(exclude="guildMember", callSuper=false)
 @ToString(exclude="guildMember")
 @JsonIgnoreProperties("guildMember")
 @Entity
 @Table(uniqueConstraints=@UniqueConstraint(columnNames={"name", "realm"}))
-public class WarcraftCharacter implements Serializable {
+public class WarcraftCharacter  implements Serializable, OwnedEntity {
+    
     @Id 
     @GeneratedValue
-    private long id;
+    protected long id;
     
     @Column(nullable = false)
     private String name;
@@ -62,9 +63,8 @@ public class WarcraftCharacter implements Serializable {
     @ManyToOne
     private User owner;
     
-    private boolean ownershipLocked =   false;
+    private boolean readOnly;
     
-    private boolean readOnly    =   false;
-    
+    private boolean ownershipLocked;
     
 }

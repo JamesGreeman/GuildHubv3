@@ -2,8 +2,8 @@ package com.zanvork.guildhubv3.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.zanvork.guildhubv3.model.enums.Regions;
-import com.zanvork.guildhubv3.services.CharacterService;
 import com.zanvork.guildhubv3.services.EntityNotFoundException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -30,16 +30,16 @@ import lombok.ToString;
  * @author zanvork
  */
 @Data
-@EqualsAndHashCode(exclude="membersMap")
+@EqualsAndHashCode(exclude="membersMap", callSuper=false)
 @ToString(exclude="membersMap")
 @JsonIgnoreProperties("membersMap")
 @Entity
 @Table(uniqueConstraints=@UniqueConstraint(columnNames={"name", "region"}))
-public class Team {
+public class Team  implements Serializable, OwnedEntity {
     
-    @Id
+    @Id 
     @GeneratedValue
-    private long id;
+    protected long id;
     
     @Column(nullable = false)
     private String name;
@@ -54,6 +54,12 @@ public class Team {
     @Transient
     private Map<Long, TeamMember> membersMap  =   new HashMap<>();
     
+    @ManyToOne
+    private User owner;
+    
+    private boolean readOnly;
+    
+    private boolean ownershipLocked;
     
     public void addMember(TeamMember member){
         member.setTeam(this);
@@ -87,10 +93,4 @@ public class Team {
         });
     }
     
-    @ManyToOne
-    private User owner;
-    
-    private boolean ownershipLocked =   false;
-    
-    private boolean readOnly    =   false;
 }
