@@ -36,4 +36,9 @@ public class Realm implements Serializable {
     @Column(columnDefinition = "ENUM('EU', 'US', 'KR', 'TW')")
     private Regions region;
     
+    
+    public String getRegionName(){
+        return region.name();
+    }
+    
 }

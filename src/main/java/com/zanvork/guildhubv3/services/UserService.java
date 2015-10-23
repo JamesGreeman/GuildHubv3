@@ -42,6 +42,21 @@ public class UserService implements UserDetailsService, BackendService {
     
     private final BCryptPasswordEncoder passwordEncoder =   new BCryptPasswordEncoder();
     
+    public User getUser(long id)
+            throws EntityNotFoundException{
+        
+        User user;
+        synchronized(usersLock){
+            user = users.get(id);
+        }
+        if (user == null){
+            throw new EntityNotFoundException(
+                    "Could not load User entity with id '" + users + "'."
+            );
+        }
+        return user;
+    }
+    
     public User getUser(String username)
             throws EntityNotFoundException{
         

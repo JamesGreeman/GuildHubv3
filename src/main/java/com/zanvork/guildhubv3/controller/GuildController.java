@@ -43,29 +43,25 @@ public class GuildController extends RESTController{
         return "Failed to create guild.";
     }
     
-    @RequestMapping(value = "/{regionName}/{realmName}/{name}", method = RequestMethod.PUT)
+    @RequestMapping(value = "/{guildId}", method = RequestMethod.PUT)
     public String updateGuild(
             Principal principal,
-            @PathVariable String regionName, 
-            @PathVariable String realmName, 
-            @PathVariable String name){
+            @PathVariable long guildId){
         
         User user   =   getActiveUser(principal);
-        if (guildService.updateGuild(user, name, realmName, regionName) != null){
+        if (guildService.updateGuild(user, guildId) != null){
             return "Successfully updated guild.";
         }
         return "Failed to update guild.";
     }
     
-    @RequestMapping(value = "/members/{regionName}/{realmName}/{name}", method = RequestMethod.PUT)
+    @RequestMapping(value = "/members/{guildId}", method = RequestMethod.PUT)
     public String updateGuildMembers(
             Principal principal,
-            @PathVariable String regionName, 
-            @PathVariable String realmName, 
-            @PathVariable String name){
+            @PathVariable long guildId){
         
         User user   =   getActiveUser(principal);
-        if (guildService.updateGuildMembers(user, name, realmName, regionName) != null){
+        if (guildService.updateGuildMembers(user, guildId) != null){
             return "Successfully updated guild.";
         }
         return "Failed to update guild.";

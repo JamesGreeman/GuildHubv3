@@ -27,6 +27,8 @@ public class TeamService implements BackendService{
     //Backend services    
     @Autowired
     private CharacterService characterService;
+    @Autowired
+    private UserService userService;
 
     //DAOs
     @Autowired
@@ -43,10 +45,19 @@ public class TeamService implements BackendService{
             teamsByNameLock =   new Object();
     
     
-    private Team getTeam(long id){
+    private Team getTeam(long id)
+            throws EntityNotFoundException{
+        
+        Team team;
         synchronized(teamsLock){
-            return teams.get(id);
+            team = teams.get(id);
         }
+        if (team == null){
+            throw new EntityNotFoundException(
+                    "Could not load Team entity with id '" + id + "'."
+            );
+        }
+        return team;
     }
     
     private boolean teamExists(String key){
@@ -95,10 +106,10 @@ public class TeamService implements BackendService{
         return team;
     }
     
-    public void removeTeam(User user, String name, String region, String password)
+    public void removeTeam(User user, long id, String password)
             throws EntityNotFoundException, ReadOnlyEntityException, NotAuthorizedException, NotAuthenticatedException{
         
-        Team team   =   getTeam(name, region);
+        Team team   =   getTeam(id);
         userCanEditTeam(user, team);
         if (!BCrypt.checkpw(password, user.getPasswordHash())){
             throw new NotAuthenticatedException(
@@ -108,17 +119,16 @@ public class TeamService implements BackendService{
         removeTeam(team);
     }
     
-    public void addMember(User user, String teamName, String region, String characterName, String realm)
+    public void addMember(User user, long teamId, long characterId)
             throws EntityNotFoundException, EntityAlreadyExistsException, ReadOnlyEntityException, NotAuthorizedException{
         
-        Team team                       =   getTeam(teamName, region);
+        Team team                       =   getTeam(teamId);
         userCanEditTeam(user, team);
         TeamMember teamMember           =   new TeamMember();
-        WarcraftCharacter character     =   characterService.getCharacter(characterName, realm, region);
-        String characterKey             =   CharacterService.characterToKey(character);
-        if (team.hasMember(characterKey)){
+        WarcraftCharacter character     =   characterService.getCharacter(characterId);
+        if (team.hasMember(characterId)){
             throw new EntityAlreadyExistsException(
-                "Cannot add character with key '" + characterKey + "' to team '" + teamName + "' in region '" + region + "'."
+                "Cannot add character with id '" + teamId + "' to team with id '" + characterId + "'."
                     + "  This team already contains this character."
             );
         }
@@ -128,17 +138,27 @@ public class TeamService implements BackendService{
         
     }
     
-    public void removeMember(User user, String teamName, String region, String characterName, String realm)
+    public void removeMember(User user, long teamId, long characterId)
             throws EntityNotFoundException,ReadOnlyEntityException, NotAuthorizedException{
         
-        Team team               =   getTeam(teamName, region);
-        
+        Team team               =   getTeam(teamId);
         userCanEditTeam(user, team);
-        TeamMember teamMember   =   team.getMember(CharacterService.characterNameRealmRegionToKey(characterName, realm, region));
+        TeamMember teamMember   =   team.getMember(characterId);
         team.getMembers().remove(teamMember);
         saveTeam(team);
         
     }
+    
+    public Team changeUser(User user, long teamId, long userId){
+        Team team =   getTeam(teamId);
+        User newUser    =   userService.getUser(userId);
+        userCanChangeTeamOwner(newUser, team);
+        team.setOwner(newUser);
+        saveTeam(team);
+        return team;
+    }
+    
+    
     private boolean userCanChangeTeamOwner(User user, Team team)
             throws OwnershipLockedException, NotAuthorizedException{
         

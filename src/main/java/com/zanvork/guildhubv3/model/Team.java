@@ -52,7 +52,7 @@ public class Team {
     private List<TeamMember> members    =   new ArrayList<>();
     
     @Transient
-    private Map<String, TeamMember> membersMap  =   new HashMap<>();
+    private Map<Long, TeamMember> membersMap  =   new HashMap<>();
     
     
     public void addMember(TeamMember member){
@@ -60,21 +60,21 @@ public class Team {
         members.add(member);
     }
     
-    public boolean hasMember(String key){  if (membersMap.size() != members.size()){
+    public boolean hasMember(long id){  if (membersMap.size() != members.size()){
             updateMembersMap();
         }
-        return membersMap.containsKey(key);
+        return membersMap.containsKey(id);
     }
     
-    public TeamMember getMember(String key)
+    public TeamMember getMember(long id)
             throws EntityNotFoundException{
         if (membersMap.size() != members.size()){
             updateMembersMap();
         }
-        TeamMember  member  =   membersMap.get(key);
+        TeamMember  member  =   membersMap.get(id);
         if (member == null){
             EntityNotFoundException e   =   new EntityNotFoundException(
-                    "Team '" + name + "' on region '" + region.name() + "' does not contain a member with key '" + key + "'."
+                    "Team '" + name + "' on region '" + region.name() + "' does not contain a member with id '" + id + "'."
             );
             throw e;
         }
@@ -83,7 +83,7 @@ public class Team {
     
     private void updateMembersMap(){
         members.forEach((member) -> {
-            membersMap.put(CharacterService.characterToKey(member.getMember()), member);
+            membersMap.put(member.getId(), member);
         });
     }
     

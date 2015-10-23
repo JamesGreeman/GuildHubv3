@@ -42,40 +42,35 @@ public class TeamController extends RESTController {
         return "Failed to create team.";
     }
     
-    @RequestMapping(value = "/{regionName}/{name}/{password}", method = RequestMethod.DELETE)
+    @RequestMapping(value = "/{teamId}/{password}", method = RequestMethod.DELETE)
     public String removeTeam(
             Principal principal,
-            @PathVariable String regionName, 
-            @PathVariable String name,
+            @PathVariable long teamId,
             @PathVariable String password){
         
         User user   =   getActiveUser(principal);
-        teamService.removeTeam(user, name, regionName, password);
+        teamService.removeTeam(user, teamId, password);
         return "Deleted team.";
     }
-    @RequestMapping(value = "/member/{regionName}/{name}/{realmName}/{characterName}", method = RequestMethod.POST)
+    @RequestMapping(value = "/member/{teamId}/{characterId}", method = RequestMethod.POST)
     public String addTeamMember(
             Principal principal,
-            @PathVariable String regionName, 
-            @PathVariable String name, 
-            @PathVariable String realmName, 
-            @PathVariable String characterName){
+            @PathVariable long teamId, 
+            @PathVariable long characterId){
         
         User user   =   getActiveUser(principal);
-        teamService.addMember(user, name, regionName, characterName, realmName);
+        teamService.addMember(user, teamId, characterId);
         return "Added member.";
     }
     
-    @RequestMapping(value = "/member/{regionName}/{name}/{realmName}/{characterName}", method = RequestMethod.DELETE)
+    @RequestMapping(value = "/member/{teamId}/{characterId}", method = RequestMethod.DELETE)
     public String removeTeamMember(
             Principal principal,
-            @PathVariable String regionName, 
-            @PathVariable String name, 
-            @PathVariable String realmName, 
-            @PathVariable String characterName){
+            @PathVariable long teamId, 
+            @PathVariable long characterId){
         
         User user   =   getActiveUser(principal);
-        teamService.removeMember(user, name, regionName, characterName, realmName);
+        teamService.removeMember(user, teamId, characterId);
         return "Removed member.";
     }
     

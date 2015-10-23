@@ -37,6 +37,8 @@ public class CharacterService implements BackendService{
     //Backend Service
     @Autowired
     private DataService dataService;
+    @Autowired
+    private UserService userService;
 
     //DAOs
     @Autowired
@@ -56,8 +58,19 @@ public class CharacterService implements BackendService{
      * @param id id of the character 
      * @return character object requested (null if does not exist)
      */
-    private WarcraftCharacter getCharacter(long id){
-        return characters.get(id);
+    public WarcraftCharacter getCharacter(long id)
+            throws EntityNotFoundException{
+        
+        WarcraftCharacter team;
+        synchronized(charactersLock){
+            team = characters.get(id);
+        }
+        if (team == null){
+            throw new EntityNotFoundException(
+                    "Could not load WarcraftCharacter entity with id '" + id + "'."
+            );
+        }
+        return team;
     }
     
     /**
@@ -153,20 +166,27 @@ public class CharacterService implements BackendService{
     /**
      * Updates a character from a name, region and realm.
      * @param user
-     * @param name name of the character.
-     * @param realm realm the character is on
-     * @param region region the realm is in
+     * @param id
      * @return the updated character
      */
-    public WarcraftCharacter updateCharacter(User user, String name, String realm, String region)
+    public WarcraftCharacter updateCharacter(User user, long id)
             throws EntityNotFoundException, RestObjectNotFoundException,ReadOnlyEntityException, NotAuthorizedException{
         
-        String key                  =   characterNameRealmRegionToKey(name, realm, region);
-        WarcraftCharacter character =   getCharacter(key);
+        WarcraftCharacter character =   getCharacter(id);
         
         userCanEditCharacter(user, character);
-        RestCharacter characterData =   apiService.getCharacter(region, realm, name);
+        RestCharacter characterData =   apiService.getCharacter(character.getName(), character.getRealm().getName(), character.getRealm().getRegionName());
         updateCharacter(character, characterData);
+        return character;
+    }
+    
+    
+    public WarcraftCharacter changeUser(User user, long characterId, long userId){
+        WarcraftCharacter character =   getCharacter(characterId);
+        User newUser    =   userService.getUser(userId);
+        userCanChangeCharacterOwner(newUser, character);
+        character.setOwner(newUser);
+        saveCharacter(character);
         return character;
     }
     

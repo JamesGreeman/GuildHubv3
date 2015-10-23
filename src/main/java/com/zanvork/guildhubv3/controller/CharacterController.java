@@ -43,15 +43,13 @@ public class CharacterController  extends RESTController {
         return "Failed to create character.";
     }
     
-    @RequestMapping(value = "/{regionName}/{realmName}/{name}", method = RequestMethod.PUT)
+    @RequestMapping(value = "/{characterId}", method = RequestMethod.PUT)
     public String updateCharacter(
             Principal principal,
-            @PathVariable String regionName, 
-            @PathVariable String realmName, 
-            @PathVariable String name){
+            @PathVariable long characterId){
         
         User user   =   getActiveUser(principal);
-        if (characterService.updateCharacter(user, name, realmName, regionName) != null){
+        if (characterService.updateCharacter(user, characterId) != null){
             return "Successfully updated character.";
         }
         return "Failed to update character.";

@@ -34,6 +34,8 @@ public class GuildService implements BackendService{
     private DataService dataService;
     @Autowired
     private CharacterService characterService;
+    @Autowired
+    private UserService userService;
 
     //DAOs
     @Autowired
@@ -53,10 +55,19 @@ public class GuildService implements BackendService{
      * @param id id of the guild
      * @return the guild with that id
      */
-    private Guild getGuild(long id){
+    public Guild getGuild(long id)
+            throws EntityNotFoundException{
+        
+        Guild guild;
         synchronized(guildsLock){
-            return guilds.get(id);
+            guild = guilds.get(id);
         }
+        if (guild == null){
+            throw new EntityNotFoundException(
+                    "Could not load Guild entity with id '" + id + "'."
+            );
+        }
+        return guild;
     }
     
     /**
@@ -133,19 +144,15 @@ public class GuildService implements BackendService{
     /**
      * Update guild from guild name, realm and region.
      * @param user
-     * @param name name of the guild
-     * @param realm realm the guild is in
-     * @param region region the realm is on
+     * @param id
      * @return the updated guild
      */
-    public Guild updateGuild(User user, String name, String realm, String region)
+    public Guild updateGuild(User user, long id)
             throws EntityNotFoundException, RestObjectNotFoundException, ReadOnlyEntityException, NotAuthorizedException{
         
-        String key          =   guildNameRealmRegionToKey(name, realm, region);
-        Guild guild         =   getGuild(key);
-        
+        Guild guild         =   getGuild(id);
         userCanEditGuild(user, guild);    
-        RestGuild guildData =   apiService.getGuild(region, realm, name);
+        RestGuild guildData =   apiService.getGuild(guild.getName(), guild.getRealm().getName(), guild.getRealm().getRegionName());
         updateGuild(guild, guildData);
         return guild;
     }
@@ -153,20 +160,25 @@ public class GuildService implements BackendService{
     /**
      * Update guild members from guild name, realm and region.
      * @param user
-     * @param name name of the guild
-     * @param realm realm the guild is in
-     * @param region region the realm is on
+     * @param id
      * @return The updated guild
      */
-    public Guild updateGuildMembers(User user, String name, String realm, String region)
+    public Guild updateGuildMembers(User user, long id)
             throws EntityNotFoundException, RestObjectNotFoundException{
         
-        String key          =   guildNameRealmRegionToKey(name, realm, region);
-        Guild guild         =   getGuild(key);
-        
+        Guild guild         =   getGuild(id);
         userCanEditGuild(user, guild);
-        RestGuild guildData =   apiService.getGuild(region, realm, name);
+        RestGuild guildData =   apiService.getGuild(guild.getName(), guild.getRealm().getName(), guild.getRealm().getRegionName());
         updateGuild(guild, guildData, true);
+        return guild;
+    }
+    
+    public Guild changeUser(User user, long guildId, long userId){
+        Guild guild =   getGuild(guildId);
+        User newUser    =   userService.getUser(userId);
+        userCanChangeGuildOwner(newUser, guild);
+        guild.setOwner(newUser);
+        saveGuild(guild);
         return guild;
     }
     

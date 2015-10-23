@@ -1,5 +1,6 @@
 package com.zanvork.guildhubv3.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
@@ -12,8 +13,11 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 /**
  *
@@ -21,6 +25,9 @@ import lombok.Data;
  */
 
 @Data
+@EqualsAndHashCode(exclude={"passwordHash", "characters", "guilds", "teams"})
+@ToString(exclude={"passwordHash", "characters", "guilds", "teams"})
+@JsonIgnoreProperties({"passwordHash", "characters", "guilds", "teams"} )
 @Entity
 @Table(name = "users")
 public class User implements Serializable {
@@ -44,6 +51,15 @@ public class User implements Serializable {
     @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     @JoinTable(name = "user_role", joinColumns = { @JoinColumn(name = "user_id") }, inverseJoinColumns = { @JoinColumn(name = "role_id") })
     private Set<Role> roles = new HashSet<>();
+    
+    @OneToMany(mappedBy = "owner", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    private Set<WarcraftCharacter> characters;
+    
+    @OneToMany(mappedBy = "owner", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    private Set<Guild> guilds;
+    
+    @OneToMany(mappedBy = "owner", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    private Set<Team> teams;
     
     public User(){
         
