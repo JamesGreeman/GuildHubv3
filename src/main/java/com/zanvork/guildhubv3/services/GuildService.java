@@ -164,7 +164,7 @@ public class GuildService implements BackendService{
      * @return The updated guild
      */
     public Guild updateGuildMembers(User user, long id)
-            throws EntityNotFoundException, RestObjectNotFoundException{
+            throws EntityNotFoundException, RestObjectNotFoundException, ReadOnlyEntityException, NotAuthorizedException{
         
         Guild guild         =   getGuild(id);
         userCanEditGuild(user, guild);
@@ -173,11 +173,23 @@ public class GuildService implements BackendService{
         return guild;
     }
     
-    public Guild changeUser(User user, long guildId, long userId){
+    public Guild changeUser(User user, long guildId, long userId)
+            throws EntityNotFoundException, ReadOnlyEntityException, OwnershipLockedException, NotAuthorizedException{
+        
         Guild guild =   getGuild(guildId);
         User newUser    =   userService.getUser(userId);
         userCanChangeGuildOwner(newUser, guild);
         guild.setOwner(newUser);
+        saveGuild(guild);
+        return guild;
+    }
+    
+    public Guild setGuildLocked(User user, long guildId, boolean locked)
+            throws EntityNotFoundException, ReadOnlyEntityException, NotAuthorizedException{
+        
+        Guild guild =   getGuild(guildId);
+        userCanEditGuild(user, guild);
+        guild.setOwnershipLocked(locked);
         saveGuild(guild);
         return guild;
     }
@@ -252,14 +264,8 @@ public class GuildService implements BackendService{
                     errorText + "  It has been had it's ownership locked."
             );
         }
-        //Check if user is an admin
-        if (!user.hasRole(Role.ROLE_ADMIN)){
-            if (user.getId() != guild.getOwner().getId()){
-                throw new NotAuthorizedException(
-                        errorText + "  User does has neither admin rights nor owns the object"
-                );
-            }
-        }
+        
+        userCanEditGuild(user, guild);
         return true;
     }
     

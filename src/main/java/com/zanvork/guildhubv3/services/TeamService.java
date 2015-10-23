@@ -149,7 +149,8 @@ public class TeamService implements BackendService{
         
     }
     
-    public Team changeUser(User user, long teamId, long userId){
+    public Team changeUser(User user, long teamId, long userId)
+            throws EntityNotFoundException, ReadOnlyEntityException, OwnershipLockedException, NotAuthorizedException{
         Team team =   getTeam(teamId);
         User newUser    =   userService.getUser(userId);
         userCanChangeTeamOwner(newUser, team);
@@ -158,6 +159,16 @@ public class TeamService implements BackendService{
         return team;
     }
     
+    
+    public Team setTeamLocked(User user, long teamId, boolean locked)
+            throws EntityNotFoundException, ReadOnlyEntityException, NotAuthorizedException{
+        
+        Team team =   getTeam(teamId);
+        userCanEditTeam(user, team);
+        team.setOwnershipLocked(locked);
+        saveTeam(team);
+        return team;
+    }
     
     private boolean userCanChangeTeamOwner(User user, Team team)
             throws OwnershipLockedException, NotAuthorizedException{

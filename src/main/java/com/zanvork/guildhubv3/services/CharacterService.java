@@ -181,11 +181,25 @@ public class CharacterService implements BackendService{
     }
     
     
-    public WarcraftCharacter changeUser(User user, long characterId, long userId){
+    public WarcraftCharacter changeUser(User user, long characterId, long userId)
+            throws EntityNotFoundException, ReadOnlyEntityException, OwnershipLockedException, NotAuthorizedException{
+        
         WarcraftCharacter character =   getCharacter(characterId);
         User newUser    =   userService.getUser(userId);
         userCanChangeCharacterOwner(newUser, character);
         character.setOwner(newUser);
+        saveCharacter(character);
+        return character;
+    }
+    
+    
+    
+    public WarcraftCharacter setCharacterLocked(User user, long characterId, boolean locked)
+            throws EntityNotFoundException, ReadOnlyEntityException, NotAuthorizedException{
+        
+        WarcraftCharacter character =   getCharacter(characterId);
+        userCanEditCharacter(user, character);
+        character.setOwnershipLocked(locked);
         saveCharacter(character);
         return character;
     }
