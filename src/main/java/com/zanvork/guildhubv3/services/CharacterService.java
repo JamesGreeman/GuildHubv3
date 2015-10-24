@@ -13,12 +13,16 @@ import com.zanvork.guildhubv3.model.WarcraftCharacter;
 import com.zanvork.guildhubv3.model.CharacterItem;
 import com.zanvork.guildhubv3.model.CharacterSpec;
 import com.zanvork.guildhubv3.model.User;
+import com.zanvork.guildhubv3.model.WarcraftCharacterVerificationRequest;
 import com.zanvork.guildhubv3.model.dao.WarcraftCharacterDAO;
+import com.zanvork.guildhubv3.model.dao.WarcraftCharacterVerificationRequestDAO;
 import com.zanvork.guildhubv3.model.enums.ItemSlots;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import org.hibernate.HibernateException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,9 +42,14 @@ public class CharacterService extends OwnedEntityBackendService<WarcraftCharacte
     
     @Autowired
     private WarcraftCharacterDAO dao; 
+    @Autowired
+    private WarcraftCharacterVerificationRequestDAO verificationRequestsDAO;
     
     private final Logger log  =   LoggerFactory.getLogger(this.getClass());
    
+    private Map<Long, WarcraftCharacterVerificationRequest> verificationRequests =   new HashMap<>();
+    
+    private final Object verificationRequestsLock  =   new Object();
     
     /**
      * Get a character from a name, realm and region.
@@ -197,6 +206,61 @@ public class CharacterService extends OwnedEntityBackendService<WarcraftCharacte
     }
     
     
+    public WarcraftCharacterVerificationRequest takeOwnershipViaVerfication(User user, long characterId){
+        Random random   =   new Random();
+        WarcraftCharacterVerificationRequest verificationRequest   =   new WarcraftCharacterVerificationRequest();
+        WarcraftCharacter character =   getEntity(characterId);
+        
+        try {
+            canChangeEntityOwner(user, character);
+        } catch (NotAuthorizedException e){
+            //We don't care about not authorized exceptions, but other exceptions still matter
+        }
+        
+        verificationRequest.setDateCreated(new Date());
+        verificationRequest.setRequester(user);
+        verificationRequest.setSubject(character);
+        verificationRequest.setSlot(character.getItems().get(random.nextInt(character.getItems().size())).getSlot());
+        saveVerificationRequest(verificationRequest);
+        
+        return verificationRequest;
+    }
+    
+    public WarcraftCharacter checkVerificationRequest(User user, long characterId, long verificationRequestId){
+        WarcraftCharacterVerificationRequest verificationRequest    =   getVerificationRequest(verificationRequestId);
+        WarcraftCharacter character =   verificationRequest.getSubject();
+        if (character.getId() != characterId){
+            throw new UnexpectedEntityException(
+                    "Character id expected ('" + characterId + 
+                    "') does not match the id in the verification request ('" + 
+                    character.getId() + "')."
+            );
+        }
+        if (user.getId() != verificationRequest.getRequester().getId()){
+            throw new NotAuthorizedException(
+                    "Requesting user ('" + user.getId() + 
+                    "') does not match the id in the verification request ('" + 
+                    verificationRequest.getRequester().getId() + "')."
+            );
+            
+        }
+        RestCharacter characterData =   apiService.getCharacter(character.getRealm().getRegionName(), character.getRealm().getName(), character.getName());
+        Map<String, RestItem> items =   characterData.getItems().getItems();
+        if (items.containsKey(verificationRequest.getSlot().name().toLowerCase())){
+            throw new NotAuthorizedException(
+                    "Verification failed, character with id '" + characterId + 
+                    "' could not be verified, itemSlot '" +
+                    verificationRequest.getSlot().name().toLowerCase() + "' still equipped."
+            );
+        }
+        character.setOwner(user);
+        saveEntity(character);
+        deleteVerificationRequest(verificationRequest);
+        
+        return character;
+        
+    }
+    
     /**
      * Takes a character and generates a unique string key.
      * @param character
@@ -226,6 +290,23 @@ public class CharacterService extends OwnedEntityBackendService<WarcraftCharacte
         return key;
     }
     
+    
+    public WarcraftCharacterVerificationRequest getVerificationRequest(long id)
+            throws EntityNotFoundException{
+        
+        WarcraftCharacterVerificationRequest verificationRequest;
+        synchronized(verificationRequestsLock){
+            verificationRequest = verificationRequests.get(id);
+        }
+        if (verificationRequest == null){
+            throw new EntityNotFoundException(
+                    "Could not load WarcraftCharacterVerificationRequest with id '" + id + "'."
+            );
+        }
+        return verificationRequest;
+    }
+    
+    
     /**
      * Store all objects currently cached in service.
      */
@@ -241,8 +322,26 @@ public class CharacterService extends OwnedEntityBackendService<WarcraftCharacte
     @Override
     public void updateFromBackend(){
         loadEntitiesFromBackend();
+        loadCharacterVerificationRequestsFromBackend();
     }
 
+    
+    public void saveVerificationRequest(WarcraftCharacterVerificationRequest verificationRequest){
+        verificationRequestsDAO.save(verificationRequest);
+       
+        synchronized(verificationRequestsLock){
+            verificationRequests.put(verificationRequest.getId(), verificationRequest);
+        }
+    }
+    
+    public void deleteVerificationRequest(WarcraftCharacterVerificationRequest verificationRequest){
+        verificationRequestsDAO.delete(verificationRequest);
+       
+        synchronized(verificationRequestsLock){
+            verificationRequests.remove(verificationRequest.getId());
+        }
+    }
+    
     @Override
     protected void saveEntity(WarcraftCharacter entity) throws HibernateException{
         dao.save(entity);
@@ -270,5 +369,17 @@ public class CharacterService extends OwnedEntityBackendService<WarcraftCharacte
             entitiesByName    =   newEntitiesByName;
         }
     }
+    
+    protected void loadCharacterVerificationRequestsFromBackend() {
+        Map<Long, WarcraftCharacterVerificationRequest> newVerificationRequesrs          =   new HashMap<>();
+        verificationRequestsDAO.findAll().forEach(verificationRequest -> {
+            newVerificationRequesrs.put(verificationRequest.getId(), verificationRequest);
+        });
+        synchronized (verificationRequestsLock){
+            verificationRequests    =   newVerificationRequesrs;
+        }
+    }
+    
+    
 
 }

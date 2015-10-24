@@ -68,6 +68,20 @@ public abstract class OwnedEntityBackendService<E extends OwnedEntity> implement
         }
     }
     
+    public E takeOwnership(User user, long entityId){
+        E entity =   getEntity(entityId);
+        canChangeEntityOwner(user, entity);
+        entity.setOwner(user);
+        saveEntity(entity);
+        
+        return entity;
+    }
+    
+    public E requestOwnship(User user, long entityId){
+        throw new RuntimeException("NOT IMPLEMENTED");
+ 
+    }
+    
     public E changeUser(User user, long entityId, long userId)
             throws EntityNotFoundException, ReadOnlyEntityException, OwnershipLockedException, NotAuthorizedException{
         
@@ -79,7 +93,7 @@ public abstract class OwnedEntityBackendService<E extends OwnedEntity> implement
         return entity;
     }
     
-     public E setCharacterLocked(User user, long id, boolean locked)
+     public E setEntityLocked(User user, long id, boolean locked)
             throws EntityNotFoundException, ReadOnlyEntityException, NotAuthorizedException{
         
         E entity =   getEntity(id);
@@ -90,7 +104,7 @@ public abstract class OwnedEntityBackendService<E extends OwnedEntity> implement
     }
     
     
-    private boolean canChangeEntityOwner(User user, E entity)
+    protected boolean canChangeEntityOwner(User user, E entity)
             throws OwnershipLockedException, NotAuthorizedException{
         
          String errorText    =   "Cannot change ownership of entity with name '" + entityToKey(entity) + "'.";
@@ -122,6 +136,7 @@ public abstract class OwnedEntityBackendService<E extends OwnedEntity> implement
         }
         //Check if user is an admin
         if (!user.hasRole(Role.ROLE_ADMIN)){
+            //if entity is owned by user 
             if (user.getId() != entity.getOwner().getId()){
                 throw new NotAuthorizedException(
                         errorText + "  User does has neither admin rights nor owns the object"

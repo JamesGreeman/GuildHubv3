@@ -6,6 +6,7 @@ import com.zanvork.battlenet.service.RestObjectNotFoundException;
 import com.zanvork.battlenet.service.WarcraftAPIService;
 import com.zanvork.guildhubv3.model.Guild;
 import com.zanvork.guildhubv3.model.GuildMember;
+import com.zanvork.guildhubv3.model.Role;
 import com.zanvork.guildhubv3.model.User;
 import com.zanvork.guildhubv3.model.WarcraftCharacter;
 import com.zanvork.guildhubv3.model.dao.GuildDAO;
@@ -168,6 +169,36 @@ public class GuildService extends OwnedEntityBackendService<Guild>{
             }
         });
         saveEntity(guild);
+    }
+    
+    //Overided as special case where a guild leader's owner can modify/take ownership of huild
+    @Override
+    protected boolean userCanEditEntity(User user, Guild guild)
+            throws ReadOnlyEntityException, NotAuthorizedException{
+        
+        String errorText    =   "Cannot update entity with key '" + entityToKey(guild) + "'.";
+        
+        //Take ownership of a guild when updating it if not already owned.
+        if (guild.getOwner() == null && guild.isOwnershipLocked()){
+            guild.setOwner(user);
+        }
+        //Check the guild is not read only
+        if (guild.isReadOnly()){
+            throw new ReadOnlyEntityException(
+                    errorText + "  It has been flagged as read only"
+            );
+        }
+        //Check if guild is an admin
+        if (!user.hasRole(Role.ROLE_ADMIN)){
+            //if guild is owned by user or guild's leader is owned by user
+            if (user.getId() != guild.getOwner().getId() &&
+                    (guild.getLeader() == null || guild.getLeader().getOwner() == null || user.getId() != guild.getLeader().getOwner().getId())){
+                throw new NotAuthorizedException(
+                        errorText + "  User does has neither admin rights nor owns the object"
+                );
+            }
+        }
+        return true;
     }
     /**
      * Takes a guild and generates a unique string key.
