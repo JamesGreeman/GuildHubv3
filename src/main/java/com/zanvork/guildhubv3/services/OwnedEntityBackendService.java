@@ -170,7 +170,7 @@ public abstract class OwnedEntityBackendService<E extends OwnedEntity> implement
         return entity;
     }
     
-     public E setEntityLocked(User user, long id, boolean locked)
+     public E setEntityOwnershipLocked(User user, long id, boolean locked)
             throws EntityNotFoundException, ReadOnlyEntityException, NotAuthorizedException{
         
         E entity =   getEntity(id);
@@ -179,6 +179,27 @@ public abstract class OwnedEntityBackendService<E extends OwnedEntity> implement
         saveEntity(entity);
         return entity;
     }
+     
+     public E setEntityReadOnly(User user, long id, boolean readOnly)
+            throws EntityNotFoundException, NotAuthorizedException{
+         
+        E entity =   getEntity(id);
+        
+        //Check if user is an admin
+        if (!user.hasRole(Role.ROLE_ADMIN)){
+            //if entity is owned by user 
+            if (user.getId() != entity.getOwner().getId()){
+                throw new NotAuthorizedException(
+                        "Cannot set read only on this object. User does has " + 
+                        "neither admin rights nor owns the object"
+                );
+            }
+        }
+        
+        entity.setReadOnly(readOnly);
+        saveEntity(entity);
+        return entity;
+     }
     
     
     protected boolean canChangeEntityOwner(User user, E entity)
