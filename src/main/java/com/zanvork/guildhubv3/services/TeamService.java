@@ -132,7 +132,7 @@ public class TeamService extends OwnedEntityBackendService<Team>{
     @Scheduled(fixedDelay=TIME_15_SECOND)
     @Override
     public void updateFromBackend(){
-        loadEntitiesFromBackend();
+        super.updateFromBackend();
     }
 
     @Override

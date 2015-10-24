@@ -321,7 +321,7 @@ public class CharacterService extends OwnedEntityBackendService<WarcraftCharacte
     @Scheduled(fixedDelay=TIME_15_SECOND)
     @Override
     public void updateFromBackend(){
-        loadEntitiesFromBackend();
+        super.updateFromBackend();
         loadCharacterVerificationRequestsFromBackend();
     }
 

@@ -243,7 +243,7 @@ public class GuildService extends OwnedEntityBackendService<Guild>{
     @Scheduled(fixedDelay=TIME_15_SECOND)
     @Override
     public void updateFromBackend(){
-        loadEntitiesFromBackend();
+        super.updateFromBackend();
     }
 
     @Override

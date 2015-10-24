@@ -25,9 +25,9 @@ import lombok.ToString;
  */
 
 @Data
-@EqualsAndHashCode(exclude={"passwordHash", "password", "characters", "guilds", "teams"})
-@ToString(exclude={"passwordHash", "password", "characters", "guilds", "teams"})
-@JsonIgnoreProperties({"passwordHash", "password", "characters", "guilds", "teams"} )
+@EqualsAndHashCode(exclude={"passwordHash", "characters", "guilds", "teams", "ownershipRequests"})
+@ToString(exclude={"passwordHash", "characters", "guilds", "teams", "ownershipRequests"})
+@JsonIgnoreProperties({"passwordHash", "password", "characters", "guilds", "teams", "ownershipRequests"} )
 @Entity
 @Table(name = "users")
 public class User implements Serializable {
@@ -60,6 +60,9 @@ public class User implements Serializable {
     
     @OneToMany(mappedBy = "owner", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     private Set<Team> teams;
+    
+    @OneToMany(mappedBy = "currentOwner", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    private Set<OwnedEntityOwnershipRequest> ownershipRequests;
     
     public User(){
         
