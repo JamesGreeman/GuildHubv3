@@ -1,5 +1,6 @@
 package com.zanvork.guildhubv3.controller;
 
+import com.zanvork.guildhubv3.model.OwnedEntityOwnershipRequest;
 import com.zanvork.guildhubv3.model.User;
 import com.zanvork.guildhubv3.services.CharacterService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,7 +8,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.zanvork.guildhubv3.model.WarcraftCharacter;
+import com.zanvork.guildhubv3.model.WarcraftCharacterVerificationRequest;
 import java.security.Principal;
+import lombok.Data;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 /**
@@ -20,39 +24,201 @@ public class CharacterController  extends RESTController {
     @Autowired
     private CharacterService characterService;
     
-    @RequestMapping(value = "/{regionName}/{realmName}/{name}", method = RequestMethod.GET)
-    public WarcraftCharacter getCharacter(
-            @PathVariable String regionName, 
-            @PathVariable String realmName, 
-            @PathVariable String name){
+    @RequestMapping(method = RequestMethod.POST)
+    public CharacterResponse createCharacter(
+            final Principal p,
+            final @RequestBody NewCharacterRequest r){
         
-        return characterService.getCharacter(name, realmName, regionName);
+        String  region  =   r.getRegion();
+        String  realm   =   r.getRealm();
+        String  name    =   r.getName();
+        
+        User    user    =   getActiveUser(p);
+        
+        WarcraftCharacter character =   characterService.createCharacter(user, name, realm, region, true);
+        CharacterResponse response   =   new CharacterResponse(character);
+        
+        return response;
     }
     
-    @RequestMapping(value = "/{regionName}/{realmName}/{name}", method = RequestMethod.POST)
-    public String addCharacter(
-            Principal principal,
-            @PathVariable String regionName, 
-            @PathVariable String realmName, 
-            @PathVariable String name){
+    @RequestMapping(value = "/{regionName}/{realmName}/{name}", method = RequestMethod.GET)
+    public CharacterResponse getCharacter(
+            final Principal p,
+            final @PathVariable String region,
+            final @PathVariable String realm,
+            final @PathVariable String name){
         
-        User user   =   getActiveUser(principal);
-        if (characterService.createCharacter(user, name, realmName, regionName, true) != null){
-            return "Successfully created character.";
-        }
-        return "Failed to create character.";
+        WarcraftCharacter   character   =   characterService.getCharacter(name, realm, region);
+        CharacterResponse response   =   new CharacterResponse(character);
+        
+        return response;
+    }
+    
+    @RequestMapping(value = "/{characterId}", method = RequestMethod.GET)
+    public CharacterResponse getCharacter(
+            final Principal p,
+            final @PathVariable long characterId){
+        
+        WarcraftCharacter   character   =   characterService.getEntity(characterId);
+        CharacterResponse response      =   new CharacterResponse(character);
+        
+        return response;
     }
     
     @RequestMapping(value = "/{characterId}", method = RequestMethod.PUT)
-    public String updateCharacter(
-            Principal principal,
-            @PathVariable long characterId){
+    public CharacterResponse updateCharcter(
+            final Principal p,
+            final @PathVariable long characterId){
         
-        User user   =   getActiveUser(principal);
-        if (characterService.updateCharacter(user, characterId) != null){
-            return "Successfully updated character.";
-        }
-        return "Failed to update character.";
+        User user                   =   getActiveUser(p);
+        WarcraftCharacter character =   characterService.updateCharacter(user, characterId);
+        CharacterResponse response  =   new CharacterResponse(character);
+        
+        return response;
     }
+    @RequestMapping(value = "/{characterId}/lock", method = RequestMethod.PUT)
+    public CharacterResponse lockCharacter(
+            final Principal p,
+            final @PathVariable long characterId){
+        
+        User user                   =   getActiveUser(p);
+        WarcraftCharacter character =   characterService.setEntityReadOnly(user, characterId, true);
+        CharacterResponse response  =   new CharacterResponse(character);
+        
+        return response;
+    }
+    
+    @RequestMapping(value = "/{characterId}/unlock", method = RequestMethod.PUT)
+    public CharacterResponse unlockCharacter(
+            final Principal p,
+            final @PathVariable long characterId){
+        
+        User user                   =   getActiveUser(p);
+        WarcraftCharacter character =   characterService.setEntityReadOnly(user, characterId, false);
+        CharacterResponse response  =   new CharacterResponse(character);
+        
+        return response;
+    }
+    
+    @RequestMapping(value = "/{characterId}/ownership/lock", method = RequestMethod.PUT)
+    public CharacterResponse lockCharacterOwnership(
+            final Principal p,
+            final @PathVariable long characterId){
+        
+        User user                   =   getActiveUser(p);
+        WarcraftCharacter character =   characterService.setEntityOwnershipLocked(user, characterId, true);
+        CharacterResponse response  =   new CharacterResponse(character);
+        
+        return response;
+    }
+    
+    @RequestMapping(value = "/{characterId}/ownership/unlock", method = RequestMethod.PUT)
+    public CharacterResponse unlockCharacterOwnership(
+            final Principal p,
+            final @PathVariable long characterId){
+        
+        User user                   =   getActiveUser(p);
+        WarcraftCharacter character =   characterService.setEntityOwnershipLocked(user, characterId, false);
+        CharacterResponse response  =   new CharacterResponse(character);
+        
+        return response;
+    }
+    
+    @RequestMapping(value = "/{characterId}/ownership/change", method = RequestMethod.PUT)
+    public CharacterResponse changeCharacterOwnership(
+            final Principal p,
+            final @PathVariable long characterId,
+            final @RequestBody ChangeOwnershipRequest r){
+        
+        User user   =   getActiveUser(p);
+        WarcraftCharacter character =   characterService.changeUser(user, characterId, r.getUserId());
+        CharacterResponse response  =   new CharacterResponse(character);
+        
+        return response;
+    }
+    
+    @RequestMapping(value = "/{characterId}/ownership/take", method = RequestMethod.PUT)
+    public CharacterResponse takeCharacterOwnership(
+            final Principal p,
+            final @PathVariable long characterId){
+        
+        User user   =   getActiveUser(p);
+        WarcraftCharacter character =   characterService.takeOwnership(user, characterId);
+        CharacterResponse response  =   new CharacterResponse(character);
+        
+        return response;
+    }
+    
+    
+    @RequestMapping(value = "/{characterId}/ownership/verify", method = RequestMethod.POST)
+    public VerificationRequestResponse createVerificationRequest(
+            final Principal p,
+            final @PathVariable long characterId){
+        
+        User user   =   getActiveUser(p);
+        WarcraftCharacterVerificationRequest request    =   characterService.takeOwnershipViaVerfication(user, characterId);
+        VerificationRequestResponse response    =   new VerificationRequestResponse(request);
+        
+        return response;
+    }
+    
+    @RequestMapping(value = "/{characterId}/ownership/verify", method = RequestMethod.PUT)
+    public CharacterResponse checkVerificationRequest(
+            final Principal p,
+            final @PathVariable long characterId,
+            final @RequestBody VerificationCheckRequest r){
+        
+        User user   =   getActiveUser(p);
+        WarcraftCharacter character =   characterService.checkVerificationRequest(user, characterId, r.getRequestId());
+        CharacterResponse response  =   new CharacterResponse(character);
+        
+        return response;
+    }
+    
+    @RequestMapping(value = "/{characterId}/ownership/request", method = RequestMethod.POST)
+    public OwnershipRequestResponse createOwnershipRequest(
+            final Principal p,
+            final @PathVariable long characterId){
+        
+        User user   =   getActiveUser(p);
+        OwnedEntityOwnershipRequest request  =   characterService.requestOwnship(user, characterId);
+        OwnershipRequestResponse response    =   new OwnershipRequestResponse(request);
+        
+        return response;
+    }
+    
+    @RequestMapping(value = "/{characterId}/ownership/request", method = RequestMethod.POST)
+    public CharacterResponse approveOwnershipRequest(
+            final Principal p,
+            final @PathVariable long characterId,
+            final @RequestBody OwnershipRequestRequest r){
+        
+        User user   =   getActiveUser(p);
+        WarcraftCharacter character =   characterService.approveOwnershipRequest(user, characterId, r.getRequestId());
+        CharacterResponse response  =   new CharacterResponse(character);
+        
+        return response;
+    }
+    
+    @RequestMapping(value = "/{characterId}/ownership/request", method = RequestMethod.DELETE)
+    public void rejectOwnershipRequest(
+            final Principal p,
+            final @PathVariable long characterId,
+            final @RequestBody OwnershipRequestRequest r){
+        
+        User user   =   getActiveUser(p);
+        characterService.rejectOwnershipRequest(user, r.getRequestId());
+    } 
+    
+    //Request Objects
+    
+    @Data
+    protected class NewCharacterRequest{
+        private String region;
+        private String realm;
+        private String name;
+    }
+    
+    
     
 }

@@ -150,7 +150,12 @@ public abstract class OwnedEntityBackendService<E extends OwnedEntity> implement
     
     public void rejectOwnershipRequest(User user, long ownershipRequestId){
         OwnedEntityOwnershipRequest ownershipRequest    =   getOwnershipRequest(ownershipRequestId);
-        
+        E entity                                        =   getEntity(ownershipRequest.getId());
+        if (user.getId() != entity.getOwner().getId()){
+            throw new NotAuthorizedException(
+                    "User is not the owner of the requested entity"
+            );
+        }
         deleteOwnershipRequest(ownershipRequest);
         
     }
