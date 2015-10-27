@@ -2,12 +2,15 @@ package com.zanvork.guildhubv3.services;
 
 import com.zanvork.battlenet.service.RestObjectNotFoundException;
 import com.zanvork.guildhubv3.model.Team;
+import com.zanvork.guildhubv3.model.TeamInvite;
 import com.zanvork.guildhubv3.model.TeamMember;
 import com.zanvork.guildhubv3.model.User;
 import com.zanvork.guildhubv3.model.WarcraftCharacter;
 import com.zanvork.guildhubv3.model.dao.TeamDAO;
+import com.zanvork.guildhubv3.model.dao.TeamInviteDAO;
 import com.zanvork.guildhubv3.model.enums.Regions;
 import static com.zanvork.guildhubv3.services.BackendService.TIME_15_SECOND;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import org.hibernate.HibernateException;
@@ -30,8 +33,14 @@ public class TeamService extends OwnedEntityBackendService<Team>{
     
     @Autowired
     private TeamDAO dao;
+    @Autowired
+    private TeamInviteDAO invitesDAO; 
     
     private final Logger log  =   LoggerFactory.getLogger(this.getClass());
+    
+    private Map<Long, TeamInvite> teamInvites =   new HashMap<>();
+    
+    private final Object teamInvitesLock    =   new Object();
     
     public Team getTeam(String name, String region)
             throws EntityNotFoundException {
@@ -71,26 +80,52 @@ public class TeamService extends OwnedEntityBackendService<Team>{
         saveEntity(team);
     }
     
-    public void addMember(User user, long teamId, long characterId)
+    public Team addMember(User user, long teamId, long characterId)
             throws EntityNotFoundException, EntityAlreadyExistsException, ReadOnlyEntityException, NotAuthorizedException{
         
         Team team                       =   getEntity(teamId);
         userCanEditEntity(user, team);
-        TeamMember teamMember           =   new TeamMember();
         WarcraftCharacter character     =   characterService.getEntity(characterId);
+        characterService.userCanEditEntity(user, character);
         if (team.hasMember(characterId)){
             throw new EntityAlreadyExistsException(
-                "Cannot add character with id '" + teamId + "' to team with id '" + characterId + "'."
+                "Cannot add character with id '" + characterId + "' to team with id '" + teamId + "'."
                     + "  This team already contains this character."
             );
         }
+        TeamMember teamMember           =   new TeamMember();
         teamMember.setMember(character);
         team.addMember(teamMember);
         saveEntity(team);
         
+        return team;        
     }
     
-    public void removeMember(User user, long teamId, long characterId)
+    
+    public TeamInvite inviteMember(User user, long teamId, long characterId)
+            throws EntityNotFoundException, EntityAlreadyExistsException, ReadOnlyEntityException, NotAuthorizedException{
+         
+        Team team                       =   getEntity(teamId);
+        userCanEditEntity(user, team);
+        WarcraftCharacter character     =   characterService.getEntity(characterId);
+        if (team.hasMember(characterId)){
+            throw new EntityAlreadyExistsException(
+                "Cannot invite character with id '" + characterId + "' to team with id '" + teamId + "'."
+                    + "  This team already contains this character."
+            );
+        }
+        TeamInvite invite   =   new TeamInvite();
+        invite.setCharacter(character);
+        invite.setDateCreated(new Date());
+        invite.setTeam(team);
+        invite.setRequester(user);
+        
+        saveInvite(invite);
+        
+        return invite;
+    }
+    
+    public Team removeMember(User user, long teamId, long characterId)
             throws EntityNotFoundException,ReadOnlyEntityException, NotAuthorizedException{
         
         Team team               =   getEntity(teamId);
@@ -99,7 +134,34 @@ public class TeamService extends OwnedEntityBackendService<Team>{
         team.getMembers().remove(teamMember);
         saveEntity(team);
         
+        return team;
     }
+    
+    public void acceptTeamInvite(User user, long inviteId){
+        TeamInvite invite   =   getInvite(inviteId);
+        characterService.canChangeEntityOwner(user, invite.getCharacter());
+        long characterId    =   invite.getCharacter().getId();
+        long teamId         =   invite.getTeam().getId();
+        if (invite.getTeam().hasMember(characterId)){
+            throw new EntityAlreadyExistsException(
+                "Cannot join team with id '" + teamId + "' on character with id '" + characterId + "'."
+                    + "  This team already contains this character."
+            );
+        }
+        TeamMember teamMember   =   new TeamMember();
+        teamMember.setMember(invite.getCharacter());
+        teamMember.setTeam(invite.getTeam());
+        
+        saveEntity(invite.getTeam());
+        deleteInvite(invite);
+    }
+    
+    public void rejectTeamInvite(User user, long inviteId){
+        TeamInvite invite   =   getInvite(inviteId);
+        characterService.canChangeEntityOwner(user, invite.getCharacter());
+        deleteInvite(invite);
+    }
+    
     
     @Override
     public String entityToKey(Team team){
@@ -116,6 +178,21 @@ public class TeamService extends OwnedEntityBackendService<Team>{
             key =   name.toLowerCase() + "_" + region.toLowerCase();
         } 
         return key;
+    }
+    
+    public TeamInvite getInvite(long inviteId)
+          throws EntityNotFoundException{
+        
+        TeamInvite invite;
+        synchronized(teamInvitesLock){
+            invite = teamInvites.get(inviteId);
+        }
+        if (invite == null){
+            throw new EntityNotFoundException(
+                    "Could not load TeamInvite with id '" + inviteId + "'."
+            );
+        }
+        return invite;
     }
     
    
@@ -147,6 +224,22 @@ public class TeamService extends OwnedEntityBackendService<Team>{
         }
     }
 
+    public void saveInvite(TeamInvite invite){
+        invitesDAO.save(invite);
+       
+        synchronized(teamInvitesLock){
+            teamInvites.put(invite.getId(), invite);
+        }
+    }
+
+    public void deleteInvite(TeamInvite invite){
+        invitesDAO.delete(invite);
+       
+        synchronized(teamInvitesLock){
+            teamInvites.remove(invite.getId());
+        }
+    }
+    
     @Override
     protected void loadEntitiesFromBackend() {
         Map<Long, Team> newEntities          =   new HashMap<>();
@@ -160,6 +253,15 @@ public class TeamService extends OwnedEntityBackendService<Team>{
         }
         synchronized (entitiesByNameLock){
             entitiesByName    =   newEntitiesByName;
+        }
+    }
+    protected void loadTeamInvitesFromBackend() {
+        Map<Long, TeamInvite> newInvites    =   new HashMap<>();
+        invitesDAO.findAll().forEach(entity -> {
+            newInvites.put(entity.getId(), entity);
+        });
+        synchronized (teamInvitesLock){
+            teamInvites    =   newInvites;
         }
     }
 }

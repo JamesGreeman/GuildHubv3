@@ -89,7 +89,7 @@ public class DataService implements BackendService{
     public Realm getRealm(String realmName, String region)
             throws EntityNotFoundException {
         
-        String key                  =   realmNameRegionToKey(realmName, region);
+        String key                  =   Realm.realmNameRegionToKey(realmName, region);
         Realm realm =   getRealm(key);
         return realm;
     }
@@ -167,22 +167,8 @@ public class DataService implements BackendService{
     public static String realmToKey(Realm realm){
         String key  =   "null";
         if (realm != null){
-            key = realmNameRegionToKey(realm.getName(),realm.getRegion().name());
+            key =   realm.getKey();
         }
-        return key;
-    }
-    
-    /**
-     * Takes a Realm name and Region and concatenate them into a key.
-     * @param realmName name of the realm
-     * @param region name of the region
-     * @return lower case concatenated string.
-     */
-    public static String realmNameRegionToKey(String realmName, String region){
-        String key  =   "null";
-        if (realmName != null && region != null){
-            key =   realmName.toLowerCase() + "_" + region.toLowerCase();
-        } 
         return key;
     }
     
@@ -232,7 +218,7 @@ public class DataService implements BackendService{
         for (Regions region : Regions.values()){
             List<RestRealm> restRealms  =   apiService.getRealms(region.toString());
             restRealms.forEach(restRealm -> {
-                String key  =   realmNameRegionToKey(restRealm.getName(), region.name());
+                String key  =   Realm.realmNameRegionToKey(restRealm.getName(), region.name());
                 boolean addRealm;
                 synchronized(realmsLock){
                     addRealm    =   !realms.containsKey(key);

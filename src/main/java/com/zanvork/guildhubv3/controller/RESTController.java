@@ -1,9 +1,10 @@
 package com.zanvork.guildhubv3.controller;
 
+import com.zanvork.guildhubv3.model.Guild;
 import com.zanvork.guildhubv3.model.OwnedEntityOwnershipRequest;
+import com.zanvork.guildhubv3.model.Team;
 import com.zanvork.guildhubv3.model.User;
 import com.zanvork.guildhubv3.model.WarcraftCharacter;
-import com.zanvork.guildhubv3.model.WarcraftCharacterVerificationRequest;
 import java.security.Principal;
 import lombok.Data;
 import org.springframework.security.core.Authentication;
@@ -26,10 +27,6 @@ public abstract class RESTController {
         private long userId;
     }
     
-    @Data
-    protected class VerificationCheckRequest{
-        private long requestId;
-    }
     
     @Data
     protected class OwnershipRequestRequest{
@@ -50,7 +47,7 @@ public abstract class RESTController {
         CharacterResponse(WarcraftCharacter character){
             id          =   character.getId();
             name        =   character.getName();
-            realm       =   character.getRealm().getRegionName() + "-" + character.getRealm().getName();
+            realm       =   character.getRealm().getKey();
             className   =   character.getCharacterClass().getClassName();
             mainSpec    =   character.getMainSpec().getSpecName();
             offspec     =   character.getOffSpec() != null ? character.getOffSpec().getSpecName() : "none";
@@ -58,19 +55,31 @@ public abstract class RESTController {
     }
     
     @Data
-    protected class VerificationRequestResponse{
-        private long requestId;
-        private long requesterId;
-        private long subjectId;
-        private String itemSlot;
-
-        public VerificationRequestResponse(WarcraftCharacterVerificationRequest request) {
-            requestId   =   request.getId();
-            requesterId =   request.getRequester().getId();
-            subjectId   =   request.getSubject().getId();
-            itemSlot    =   request.getSlot().name();
+    protected class GuildResponse{
+        private long id;
+        private String name;
+        private String realm;
+        
+        GuildResponse(Guild guild){
+            id      =   guild.getId();
+            name    =   guild.getName();
+            realm   =   guild.getRealm().getKey();
         }
     }
+    
+    @Data
+    protected class TeamResponse{
+        private long id;
+        private String name;
+        private String region;
+        
+        TeamResponse(Team team){
+            id      =   team.getId();
+            name    =   team.getName();
+            region  =   team.getRegion().name();
+        }
+    }
+    
     
     @Data
     protected class OwnershipRequestResponse{

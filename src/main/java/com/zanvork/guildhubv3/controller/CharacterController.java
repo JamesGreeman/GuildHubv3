@@ -11,8 +11,10 @@ import com.zanvork.guildhubv3.model.WarcraftCharacter;
 import com.zanvork.guildhubv3.model.WarcraftCharacterVerificationRequest;
 import java.security.Principal;
 import lombok.Data;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  *
@@ -66,7 +68,7 @@ public class CharacterController  extends RESTController {
     }
     
     @RequestMapping(value = "/{characterId}", method = RequestMethod.PUT)
-    public CharacterResponse updateCharcter(
+    public CharacterResponse updateCharacter(
             final Principal p,
             final @PathVariable long characterId){
         
@@ -149,32 +151,6 @@ public class CharacterController  extends RESTController {
         return response;
     }
     
-    
-    @RequestMapping(value = "/{characterId}/ownership/verify", method = RequestMethod.POST)
-    public VerificationRequestResponse createVerificationRequest(
-            final Principal p,
-            final @PathVariable long characterId){
-        
-        User user   =   getActiveUser(p);
-        WarcraftCharacterVerificationRequest request    =   characterService.takeOwnershipViaVerfication(user, characterId);
-        VerificationRequestResponse response    =   new VerificationRequestResponse(request);
-        
-        return response;
-    }
-    
-    @RequestMapping(value = "/{characterId}/ownership/verify", method = RequestMethod.PUT)
-    public CharacterResponse checkVerificationRequest(
-            final Principal p,
-            final @PathVariable long characterId,
-            final @RequestBody VerificationCheckRequest r){
-        
-        User user   =   getActiveUser(p);
-        WarcraftCharacter character =   characterService.checkVerificationRequest(user, characterId, r.getRequestId());
-        CharacterResponse response  =   new CharacterResponse(character);
-        
-        return response;
-    }
-    
     @RequestMapping(value = "/{characterId}/ownership/request", method = RequestMethod.POST)
     public OwnershipRequestResponse createOwnershipRequest(
             final Principal p,
@@ -201,6 +177,7 @@ public class CharacterController  extends RESTController {
     }
     
     @RequestMapping(value = "/{characterId}/ownership/request", method = RequestMethod.DELETE)
+    @ResponseStatus(value = HttpStatus.NO_CONTENT)
     public void rejectOwnershipRequest(
             final Principal p,
             final @PathVariable long characterId,
@@ -210,6 +187,31 @@ public class CharacterController  extends RESTController {
         characterService.rejectOwnershipRequest(user, r.getRequestId());
     } 
     
+    @RequestMapping(value = "/{characterId}/ownership/verify", method = RequestMethod.POST)
+    public VerificationRequestResponse createVerificationRequest(
+            final Principal p,
+            final @PathVariable long characterId){
+        
+        User user   =   getActiveUser(p);
+        WarcraftCharacterVerificationRequest request    =   characterService.takeOwnershipViaVerfication(user, characterId);
+        VerificationRequestResponse response    =   new VerificationRequestResponse(request);
+        
+        return response;
+    }
+    
+    @RequestMapping(value = "/{characterId}/ownership/verify", method = RequestMethod.PUT)
+    public CharacterResponse checkVerificationRequest(
+            final Principal p,
+            final @PathVariable long characterId,
+            final @RequestBody VerificationCheckRequest r){
+        
+        User user   =   getActiveUser(p);
+        WarcraftCharacter character =   characterService.checkVerificationRequest(user, characterId, r.getRequestId());
+        CharacterResponse response  =   new CharacterResponse(character);
+        
+        return response;
+    }
+    
     //Request Objects
     
     @Data
@@ -218,7 +220,27 @@ public class CharacterController  extends RESTController {
         private String realm;
         private String name;
     }
+    @Data
+    protected class VerificationCheckRequest{
+        private long requestId;
+    }
     
+    
+    //Response Objects
+    @Data
+    protected class VerificationRequestResponse{
+        private long requestId;
+        private long requesterId;
+        private long subjectId;
+        private String itemSlot;
+
+        public VerificationRequestResponse(WarcraftCharacterVerificationRequest request) {
+            requestId   =   request.getId();
+            requesterId =   request.getRequester().getId();
+            subjectId   =   request.getSubject().getId();
+            itemSlot    =   request.getSlot().name();
+        }
+    }
     
     
 }

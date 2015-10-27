@@ -41,4 +41,16 @@ public class Realm implements Serializable {
         return region.name();
     }
     
+    public String getKey(){
+        return realmNameRegionToKey(name, region.name());
+    }
+    
+    public static String realmNameRegionToKey(String realmName, String region){
+        String key  =   "null";
+        if (realmName != null && region != null){
+            key =   realmName.toLowerCase() + "_" + region.toLowerCase();
+        } 
+        return key;        
+    }
+    
 }
