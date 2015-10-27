@@ -118,12 +118,27 @@ public class UserService implements UserDetailsService, BackendService {
         }
     }
      
-    public void updatePasswordForUser(String username, String newPassword){
-        User user   =   getUser(username);
+    public void updatePasswordForUser(long userId, String newPassword){
+        User user   =   getUser(userId);
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         saveUser(user);
     }
     
+    public void deleteUser(long userId){
+        User user   =   getUser(userId);
+        deleteUser(user);
+    }
+    
+    public void deleteUser(User user){
+        userDAO.delete(user);
+        synchronized (usersLock){
+            users.remove(user.getId());
+        }
+        synchronized (usersByNameLock){
+            usersByName.remove(user.getUsername());
+        }
+        
+    }
     
     public void saveUser(User user)
             throws HibernateException {

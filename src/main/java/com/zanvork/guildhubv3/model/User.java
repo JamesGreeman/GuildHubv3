@@ -52,17 +52,20 @@ public class User implements Serializable {
     @JoinTable(name = "user_role", joinColumns = { @JoinColumn(name = "user_id") }, inverseJoinColumns = { @JoinColumn(name = "role_id") })
     private Set<Role> roles = new HashSet<>();
     
-    @OneToMany(mappedBy = "owner", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "owner", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval=true)
     private Set<WarcraftCharacter> characters;
     
-    @OneToMany(mappedBy = "owner", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "owner", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval=true)
     private Set<Guild> guilds;
     
-    @OneToMany(mappedBy = "owner", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "owner", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval=true)
     private Set<Team> teams;
     
-    @OneToMany(mappedBy = "currentOwner", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "currentOwner", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval=true)
     private Set<OwnedEntityOwnershipRequest> ownershipRequests;
+    
+    @OneToMany(mappedBy = "characterOwner", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval=true)
+    private Set<TeamInvite> teamInvites;
     
     public User(){
         

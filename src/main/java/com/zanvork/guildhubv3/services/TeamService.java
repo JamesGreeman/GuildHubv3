@@ -119,6 +119,7 @@ public class TeamService extends OwnedEntityBackendService<Team>{
         invite.setDateCreated(new Date());
         invite.setTeam(team);
         invite.setRequester(user);
+        invite.setCharacterOwner(character.getOwner());
         
         saveInvite(invite);
         

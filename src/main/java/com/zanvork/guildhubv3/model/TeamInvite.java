@@ -33,4 +33,7 @@ public class TeamInvite implements Serializable {
     @ManyToOne
     private User requester;    
     
+    @ManyToOne
+    private User characterOwner;
+    
 }

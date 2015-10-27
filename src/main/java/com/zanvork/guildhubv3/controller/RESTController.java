@@ -6,6 +6,8 @@ import com.zanvork.guildhubv3.model.Team;
 import com.zanvork.guildhubv3.model.User;
 import com.zanvork.guildhubv3.model.WarcraftCharacter;
 import java.security.Principal;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.Data;
 import org.springframework.security.core.Authentication;
 
@@ -77,6 +79,21 @@ public abstract class RESTController {
             id      =   team.getId();
             name    =   team.getName();
             region  =   team.getRegion().name();
+        }
+    }
+    
+    @Data
+    protected class UserResponse{
+        private long id;
+        private String username;
+        private String email;
+        private List<String> roles;
+        
+        UserResponse(User user){
+            id          =   user.getId();
+            username    =   user.getUsername();
+            email       =   user.getEmailAddress();
+            roles       =  user.getRoles().stream().map( (role) -> role.getName()).collect(Collectors.toList());
         }
     }
     

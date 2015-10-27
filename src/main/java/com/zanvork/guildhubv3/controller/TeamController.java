@@ -291,15 +291,30 @@ public class TeamController extends RESTController {
     
     //Responses
     
+    @Data
     protected class TeamInviteResponse{
         private long inviteId;
         private long teamId;
+        private String teamName;
+        private String teamRegion;
         private long teamOwnerId;
         private long characterId;
+        private String characterName;
+        private String characterRealm;
         private long characterOwnerId;
+        private long inviterId;
         
         TeamInviteResponse(TeamInvite invite){
-            
+            inviteId            =   invite.getId();
+            teamId              =   invite.getTeam().getId();
+            teamName            =   invite.getTeam().getName();
+            teamRegion          =   invite.getTeam().getRegion().name();
+            teamOwnerId         =   invite.getTeam().getOwner().getId();
+            characterId         =   invite.getCharacter().getId();
+            characterName       =   invite.getCharacter().getName();
+            characterRealm      =   invite.getCharacter().getRealm().getKey();
+            characterOwnerId    =   invite.getCharacter().getOwner().getId();
+            inviterId           =   invite.getRequester().getId();
         }
     }
     
