@@ -3,6 +3,7 @@ package com.zanvork.guildhubv3.controller;
 import com.zanvork.guildhubv3.model.Guild;
 import com.zanvork.guildhubv3.model.OwnedEntityOwnershipRequest;
 import com.zanvork.guildhubv3.model.Team;
+import com.zanvork.guildhubv3.model.TeamInvite;
 import com.zanvork.guildhubv3.model.User;
 import com.zanvork.guildhubv3.model.WarcraftCharacter;
 import java.security.Principal;
@@ -116,4 +117,30 @@ public abstract class RESTController {
         }
     }
     
+    @Data
+    protected class TeamInviteResponse{
+        private long inviteId;
+        private long teamId;
+        private String teamName;
+        private String teamRegion;
+        private long teamOwnerId;
+        private long characterId;
+        private String characterName;
+        private String characterRealm;
+        private long characterOwnerId;
+        private long inviterId;
+        
+        TeamInviteResponse(TeamInvite invite){
+            inviteId            =   invite.getId();
+            teamId              =   invite.getTeam().getId();
+            teamName            =   invite.getTeam().getName();
+            teamRegion          =   invite.getTeam().getRegion().name();
+            teamOwnerId         =   invite.getTeam().getOwner().getId();
+            characterId         =   invite.getCharacter().getId();
+            characterName       =   invite.getCharacter().getName();
+            characterRealm      =   invite.getCharacter().getRealm().getKey();
+            characterOwnerId    =   invite.getCharacter().getOwner().getId();
+            inviterId           =   invite.getRequester().getId();
+        }
+    }
 }
