@@ -94,22 +94,24 @@ public abstract class OwnedEntityBackendService<E extends OwnedEntity> implement
         }
     }
     
-    public E takeOwnership(User user, long entityId){
+    public E takeOwnership(long userId, long entityId){
+        User user   =   userService.getUser(userId);
         E entity =   getEntity(entityId);
-        canChangeEntityOwner(user, entity);
+        canChangeEntityOwner(userId, entity);
         entity.setOwner(user);
         saveEntity(entity);
         
         return entity;
     }
     
-    public OwnedEntityOwnershipRequest requestOwnship(User user, long entityId)
+    public OwnedEntityOwnershipRequest requestOwnship(long userId, long entityId)
             throws EntityNotFoundException, ReadOnlyEntityException{
         
+        User user   =   userService.getUser(userId);
         E entity    =   getEntity(entityId);
         
         try {
-            canChangeEntityOwner(user, entity);
+            canChangeEntityOwner(userId, entity);
         } catch (NotAuthorizedException e){
             //We don't care about not authorized exceptions, but other exceptions still matter
         } 
@@ -124,7 +126,8 @@ public abstract class OwnedEntityBackendService<E extends OwnedEntity> implement
         return ownershipRequest;
     }
     
-    public E approveOwnershipRequest(User user, long entityId, long ownershipRequestId){
+    public E approveOwnershipRequest(long userId, long entityId, long ownershipRequestId){
+        
         OwnedEntityOwnershipRequest ownershipRequest    =   getOwnershipRequest(ownershipRequestId);
         if (entityId != ownershipRequest.getSubjectId()){
             throw new UnexpectedEntityException(
@@ -135,20 +138,22 @@ public abstract class OwnedEntityBackendService<E extends OwnedEntity> implement
         }
         E entity    =   getEntity(entityId);
         if (ownershipRequest.getCurrentOwner().getId() != entity.getOwner().getId()){
-            rejectOwnershipRequest(user, ownershipRequestId);
+            rejectOwnershipRequest(userId, ownershipRequestId);
             throw new UnexpectedEntityException(
                     "Owner id expected ('" + ownershipRequest.getCurrentOwner().getId() + 
                     "') does not match the owner of the entity now ('" + 
                     entity.getOwner().getId() + "')."
             );
         }
-        entity  =   changeUser(user, entity, ownershipRequest.getRequester().getId());
+        entity  =   changeUser(userId, entity, ownershipRequest.getRequester().getId());
         deleteOwnershipRequest(ownershipRequest);
         return entity;
         
     }
     
-    public void rejectOwnershipRequest(User user, long ownershipRequestId){
+    public void rejectOwnershipRequest(long userId, long ownershipRequestId){
+        
+        User user   =   userService.getUser(userId);
         OwnedEntityOwnershipRequest ownershipRequest    =   getOwnershipRequest(ownershipRequestId);
         E entity                                        =   getEntity(ownershipRequest.getId());
         if (user.getId() != entity.getOwner().getId()){
@@ -160,34 +165,36 @@ public abstract class OwnedEntityBackendService<E extends OwnedEntity> implement
         
     }
     
-    public E changeUser(User user, long entityId, long userId){
+    public E changeUser(long userId, long entityId, long newUserId){
+        
         E entity =   getEntity(entityId);
-        return changeUser(user, entity, userId);
+        return changeUser(userId, entity, newUserId);
     }
     
-    public E changeUser(User user, E entity, long userId)
+    public E changeUser(long userId, E entity, long newUserId)
             throws EntityNotFoundException, ReadOnlyEntityException, OwnershipLockedException, NotAuthorizedException{
         
-        User newUser    =   userService.getUser(userId);
-        canChangeEntityOwner(newUser, entity);
+        User newUser    =   userService.getUser(newUserId);
+        canChangeEntityOwner(userId, entity);
         entity.setOwner(newUser);
         saveEntity(entity);
         return entity;
     }
     
-     public E setEntityOwnershipLocked(User user, long id, boolean locked)
+     public E setEntityOwnershipLocked(long userId, long id, boolean locked)
             throws EntityNotFoundException, ReadOnlyEntityException, NotAuthorizedException{
         
         E entity =   getEntity(id);
-        userCanEditEntity(user, entity);
+        userCanEditEntity(userId, entity);
         entity.setOwnershipLocked(locked);
         saveEntity(entity);
         return entity;
     }
      
-     public E setEntityReadOnly(User user, long id, boolean readOnly)
+     public E setEntityReadOnly(long userId, long id, boolean readOnly)
             throws EntityNotFoundException, NotAuthorizedException{
          
+        User user       =   userService.getUser(userId);
         E entity =   getEntity(id);
         
         //Check if user is an admin
@@ -207,7 +214,7 @@ public abstract class OwnedEntityBackendService<E extends OwnedEntity> implement
      }
     
     
-    protected boolean canChangeEntityOwner(User user, E entity)
+    protected boolean canChangeEntityOwner(long userId, E entity)
             throws OwnershipLockedException, NotAuthorizedException{
         
          String errorText    =   "Cannot change ownership of entity with name '" + entityToKey(entity) + "'.";
@@ -217,14 +224,15 @@ public abstract class OwnedEntityBackendService<E extends OwnedEntity> implement
                     errorText + "  It has been had it's ownership locked."
             );
         }
-        userCanEditEntity(user, entity);
+        userCanEditEntity(userId, entity);
         return true;
     }
     
     
-    protected boolean userCanEditEntity(User user, E entity)
+    protected boolean userCanEditEntity(long userId, E entity)
             throws ReadOnlyEntityException, NotAuthorizedException{
         
+        User user           =   userService.getUser(userId);
         String errorText    =   "Cannot update entity with key '" + entityToKey(entity) + "'.";
         
         //Take ownership of a entity when updating it if not already owned.

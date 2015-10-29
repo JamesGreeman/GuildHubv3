@@ -71,11 +71,11 @@ public class UserController extends RESTController {
             final @RequestBody ChangePasswordRequest r) {
 
         String oldPassword = r.getOldPassword();
-        String newPassword = r.getOldPassword();
+        String newPassword = r.getNewPassword();
 
         User user = getActiveUser(p);
 
-        userService.updatePassword(user, oldPassword, newPassword);
+        userService.updatePassword(user.getId(), oldPassword, newPassword);
     }
 
     @RequestMapping(value = "/admin/{userId}", method = RequestMethod.DELETE)

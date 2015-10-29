@@ -117,15 +117,16 @@ public class UserService implements UserDetailsService, BackendService {
        return user;
     }
     
-    public void updatePassword(User user, String oldPassword, String newPassword)
+    public void updatePassword(long userId, String oldPassword, String newPassword)
             throws EntityNotFoundException, NotAuthenticatedException{
         
-        if (BCrypt.checkpw(oldPassword, user.getPasswordHash())){
-            user.setPasswordHash(passwordEncoder.encode(newPassword));
-            saveUser(user);
+        User userToChange   =   getUser(userId);
+        if (BCrypt.checkpw(oldPassword, userToChange.getPasswordHash())){
+            userToChange.setPasswordHash(passwordEncoder.encode(newPassword));
+            saveUser(userToChange);
         } else {
             throw new NotAuthenticatedException(
-                    "Was unable to authenticate user '" + user.getUsername() + "' as the passwords did not match"
+                    "Was unable to authenticate user '" + userToChange.getUsername() + "' as the passwords did not match"
             );
         }
     }

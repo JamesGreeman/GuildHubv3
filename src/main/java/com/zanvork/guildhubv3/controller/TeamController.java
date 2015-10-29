@@ -37,7 +37,7 @@ public class TeamController extends RESTController {
         String region   =   r.getRegion();
         
         User user               =   getActiveUser(p);
-        Team team               =   teamService.createTeam(user, name, region);
+        Team team               =   teamService.createTeam(user.getId(), name, region);
         TeamResponse response   =   new TeamResponse(team);
         
         return response;
@@ -77,7 +77,7 @@ public class TeamController extends RESTController {
         String password =   r.getPassword();
         User user       =   getActiveUser(p);
         
-        teamService.removeTeam(user, teamId, password);
+        teamService.removeTeam(user.getId(), teamId, password);
     }
     
     
@@ -90,7 +90,7 @@ public class TeamController extends RESTController {
         long characterId    =   r.getCharacterId();
         User user           =   getActiveUser(p);
         
-        Team team               =   teamService.addMember(user, teamId, characterId);
+        Team team               =   teamService.addMember(user.getId(), teamId, characterId);
         TeamResponse response   =   new TeamResponse(team);
         
         return response;
@@ -105,7 +105,7 @@ public class TeamController extends RESTController {
         long characterId    =   r.getCharacterId();
         User user           =   getActiveUser(p);
         
-        Team team               =   teamService.removeMember(user, teamId, characterId);
+        Team team               =   teamService.removeMember(user.getId(), teamId, characterId);
         TeamResponse response   =   new TeamResponse(team);
         
         return response;
@@ -120,7 +120,7 @@ public class TeamController extends RESTController {
         long characterId    =   r.getCharacterId();
         User user           =   getActiveUser(p);
         
-        TeamInvite invite           =   teamService.inviteMember(user, teamId, characterId);
+        TeamInvite invite           =   teamService.inviteMember(user.getId(), teamId, characterId);
         TeamInviteResponse response =   new TeamInviteResponse(invite);
         
         return response;
@@ -133,7 +133,7 @@ public class TeamController extends RESTController {
         
         long inviteId   =   r.getInviteId();
         User user   =   getActiveUser(p);
-        teamService.acceptTeamInvite(user, inviteId);
+        teamService.acceptTeamInvite(user.getId(), inviteId);
     }
     
     @RequestMapping(value = "/member/invite", method = RequestMethod.DELETE)
@@ -143,7 +143,7 @@ public class TeamController extends RESTController {
         
         long inviteId   =   r.getInviteId();
         User user   =   getActiveUser(p);
-        teamService.rejectTeamInvite(user, inviteId);
+        teamService.rejectTeamInvite(user.getId(), inviteId);
     }
     
  
@@ -153,7 +153,7 @@ public class TeamController extends RESTController {
             final @PathVariable long teamId){
         
         User user               =   getActiveUser(p);
-        Team team               =   teamService.setEntityReadOnly(user, teamId, true);
+        Team team               =   teamService.setEntityReadOnly(user.getId(), teamId, true);
         TeamResponse response   =   new TeamResponse(team);
         
         return response;
@@ -165,7 +165,7 @@ public class TeamController extends RESTController {
             final @PathVariable long teamId){
         
         User user               =   getActiveUser(p);
-        Team team               =   teamService.setEntityReadOnly(user, teamId, false);
+        Team team               =   teamService.setEntityReadOnly(user.getId(), teamId, false);
         TeamResponse response   =   new TeamResponse(team);
         
         return response;
@@ -177,7 +177,7 @@ public class TeamController extends RESTController {
             final @PathVariable long teamId){
         
         User user               =   getActiveUser(p);
-        Team team               =   teamService.setEntityOwnershipLocked(user, teamId, true);
+        Team team               =   teamService.setEntityOwnershipLocked(user.getId(), teamId, true);
         TeamResponse response   =   new TeamResponse(team);
         
         return response;
@@ -189,7 +189,7 @@ public class TeamController extends RESTController {
             final @PathVariable long teamId){
         
         User user               =   getActiveUser(p);
-        Team team               =   teamService.setEntityOwnershipLocked(user, teamId, false);
+        Team team               =   teamService.setEntityOwnershipLocked(user.getId(), teamId, false);
         TeamResponse response   =   new TeamResponse(team);
         
         return response;
@@ -202,7 +202,7 @@ public class TeamController extends RESTController {
             final @RequestBody ChangeOwnershipRequest r){
         
         User user               =   getActiveUser(p);
-        Team team               =   teamService.changeUser(user, teamId, r.getUserId());
+        Team team               =   teamService.changeUser(user.getId(), teamId, r.getUserId());
         TeamResponse response   =   new TeamResponse(team);
         
         return response;
@@ -214,7 +214,7 @@ public class TeamController extends RESTController {
             final @PathVariable long teamId){
         
         User user               =   getActiveUser(p);
-        Team team               =   teamService.takeOwnership(user, teamId);
+        Team team               =   teamService.takeOwnership(user.getId(), teamId);
         TeamResponse response   =   new TeamResponse(team);
         
         return response;
@@ -226,7 +226,7 @@ public class TeamController extends RESTController {
             final @PathVariable long teamId){
         
         User user                           =   getActiveUser(p);
-        OwnedEntityOwnershipRequest request =   teamService.requestOwnship(user, teamId);
+        OwnedEntityOwnershipRequest request =   teamService.requestOwnship(user.getId(), teamId);
         OwnershipRequestResponse response   =   new OwnershipRequestResponse(request);
         
         return response;
@@ -239,7 +239,7 @@ public class TeamController extends RESTController {
             final @RequestBody OwnershipRequestRequest r){
         
         User user               =   getActiveUser(p);
-        Team team               =   teamService.approveOwnershipRequest(user, teamId, r.getRequestId());
+        Team team               =   teamService.approveOwnershipRequest(user.getId(), teamId, r.getRequestId());
         TeamResponse response   =   new TeamResponse(team);
         
         return response;
@@ -253,7 +253,7 @@ public class TeamController extends RESTController {
             final @RequestBody OwnershipRequestRequest r){
         
         User user   =   getActiveUser(p);
-        teamService.rejectOwnershipRequest(user, r.getRequestId());
+        teamService.rejectOwnershipRequest(user.getId(), r.getRequestId());
     } 
     
     

@@ -50,9 +50,10 @@ public class TeamService extends OwnedEntityBackendService<Team>{
         return team;
     }
     
-    public Team createTeam(User user, String name, String region)
+    public Team createTeam(long userId, String name, String region)
             throws RestObjectNotFoundException, EntityAlreadyExistsException {
         
+        User user   =   userService.getUser(userId);
         String key  =   teamNameRegionToKey(name, region);
         if (entityExists(key)){
             throw new EntityAlreadyExistsException(
@@ -67,11 +68,12 @@ public class TeamService extends OwnedEntityBackendService<Team>{
         return team;
     }
     
-    public void removeTeam(User user, long id, String password)
+    public void removeTeam(long userId, long id, String password)
             throws EntityNotFoundException, ReadOnlyEntityException, NotAuthorizedException, NotAuthenticatedException{
         
+        User user   =   userService.getUser(userId);
         Team team   =   getEntity(id);
-        userCanEditEntity(user, team);
+        userCanEditEntity(userId, team);
         if (!BCrypt.checkpw(password, user.getPasswordHash())){
             throw new NotAuthenticatedException(
                     "Was unable to authenticate user '" + user.getUsername() + "' as the passwords did not match"
@@ -80,13 +82,13 @@ public class TeamService extends OwnedEntityBackendService<Team>{
         saveEntity(team);
     }
     
-    public Team addMember(User user, long teamId, long characterId)
+    public Team addMember(long userId, long teamId, long characterId)
             throws EntityNotFoundException, EntityAlreadyExistsException, ReadOnlyEntityException, NotAuthorizedException{
         
         Team team                       =   getEntity(teamId);
-        userCanEditEntity(user, team);
+        userCanEditEntity(userId, team);
         WarcraftCharacter character     =   characterService.getEntity(characterId);
-        characterService.userCanEditEntity(user, character);
+        characterService.userCanEditEntity(userId, character);
         if (team.hasMember(characterId)){
             throw new EntityAlreadyExistsException(
                 "Cannot add character with id '" + characterId + "' to team with id '" + teamId + "'."
@@ -102,11 +104,12 @@ public class TeamService extends OwnedEntityBackendService<Team>{
     }
     
     
-    public TeamInvite inviteMember(User user, long teamId, long characterId)
+    public TeamInvite inviteMember(long userId, long teamId, long characterId)
             throws EntityNotFoundException, EntityAlreadyExistsException, ReadOnlyEntityException, NotAuthorizedException{
          
+        User user                       =   userService.getUser(userId);
         Team team                       =   getEntity(teamId);
-        userCanEditEntity(user, team);
+        userCanEditEntity(userId, team);
         WarcraftCharacter character     =   characterService.getEntity(characterId);
         if (team.hasMember(characterId)){
             throw new EntityAlreadyExistsException(
@@ -126,11 +129,11 @@ public class TeamService extends OwnedEntityBackendService<Team>{
         return invite;
     }
     
-    public Team removeMember(User user, long teamId, long characterId)
+    public Team removeMember(long userId, long teamId, long characterId)
             throws EntityNotFoundException,ReadOnlyEntityException, NotAuthorizedException{
         
         Team team               =   getEntity(teamId);
-        userCanEditEntity(user, team);
+        userCanEditEntity(userId, team);
         TeamMember teamMember   =   team.getMember(characterId);
         team.getMembers().remove(teamMember);
         saveEntity(team);
@@ -138,9 +141,9 @@ public class TeamService extends OwnedEntityBackendService<Team>{
         return team;
     }
     
-    public void acceptTeamInvite(User user, long inviteId){
+    public void acceptTeamInvite(long userId, long inviteId){
         TeamInvite invite   =   getInvite(inviteId);
-        characterService.canChangeEntityOwner(user, invite.getCharacterInvited());
+        characterService.canChangeEntityOwner(userId, invite.getCharacterInvited());
         long characterId    =   invite.getCharacterInvited().getId();
         long teamId         =   invite.getTeam().getId();
         if (invite.getTeam().hasMember(characterId)){
@@ -157,9 +160,9 @@ public class TeamService extends OwnedEntityBackendService<Team>{
         deleteInvite(invite);
     }
     
-    public void rejectTeamInvite(User user, long inviteId){
+    public void rejectTeamInvite(long userId, long inviteId){
         TeamInvite invite   =   getInvite(inviteId);
-        characterService.canChangeEntityOwner(user, invite.getCharacterInvited());
+        characterService.canChangeEntityOwner(userId, invite.getCharacterInvited());
         deleteInvite(invite);
     }
     

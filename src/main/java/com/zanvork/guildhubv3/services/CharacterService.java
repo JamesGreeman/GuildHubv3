@@ -113,16 +113,16 @@ public class CharacterService extends OwnedEntityBackendService<WarcraftCharacte
     
     /**
      * Updates a character from a name, region and realm.
-     * @param user
+     * @param userId
      * @param id
      * @return the updated character
      */
-    public WarcraftCharacter updateCharacter(User user, long id)
+    public WarcraftCharacter updateCharacter(long userId, long id)
             throws EntityNotFoundException, RestObjectNotFoundException,ReadOnlyEntityException, NotAuthorizedException{
         
         WarcraftCharacter character =   getEntity(id);
         
-        userCanEditEntity(user, character);
+        userCanEditEntity(userId, character);
         RestCharacter characterData =   apiService.getCharacter(character.getName(), character.getRealm().getName(), character.getRealm().getRegionName());
         updateCharacter(character, characterData);
         return character;
@@ -206,13 +206,15 @@ public class CharacterService extends OwnedEntityBackendService<WarcraftCharacte
     }
     
     
-    public WarcraftCharacterVerificationRequest takeOwnershipViaVerfication(User user, long characterId){
+    public WarcraftCharacterVerificationRequest takeOwnershipViaVerfication(long userId, long characterId){
+        
+        User user       =   userService.getUser(userId);
         Random random   =   new Random();
         WarcraftCharacterVerificationRequest verificationRequest   =   new WarcraftCharacterVerificationRequest();
         WarcraftCharacter character =   getEntity(characterId);
         
         try {
-            canChangeEntityOwner(user, character);
+            canChangeEntityOwner(userId, character);
         } catch (NotAuthorizedException e){
             //We don't care about not authorized exceptions, but other exceptions still matter
         }
@@ -226,7 +228,9 @@ public class CharacterService extends OwnedEntityBackendService<WarcraftCharacte
         return verificationRequest;
     }
     
-    public WarcraftCharacter checkVerificationRequest(User user, long characterId, long verificationRequestId){
+    public WarcraftCharacter checkVerificationRequest(long userId, long characterId, long verificationRequestId){
+        
+        User user       =   userService.getUser(userId);
         WarcraftCharacterVerificationRequest verificationRequest    =   getVerificationRequest(verificationRequestId);
         WarcraftCharacter character =   verificationRequest.getSubject();
         if (character.getId() != characterId){
@@ -236,7 +240,7 @@ public class CharacterService extends OwnedEntityBackendService<WarcraftCharacte
                     character.getId() + "')."
             );
         }
-        if (user.getId() != verificationRequest.getRequester().getId()){
+        if (userId != verificationRequest.getRequester().getId()){
             throw new NotAuthorizedException(
                     "Requesting user ('" + user.getId() + 
                     "') does not match the id in the verification request ('" + 

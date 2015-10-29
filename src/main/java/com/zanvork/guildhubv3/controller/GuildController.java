@@ -37,7 +37,7 @@ public class GuildController extends RESTController{
         
         User    user    =   getActiveUser(p);
         
-        Guild guild             =   guildService.createGuild(user, name, realm, region);
+        Guild guild             =   guildService.createGuild(user.getId(), name, realm, region);
         GuildResponse response  =   new GuildResponse(guild);
         
         return response;
@@ -45,7 +45,6 @@ public class GuildController extends RESTController{
     
     @RequestMapping(value = "/{regionName}/{realmName}/{name}", method = RequestMethod.GET)
     public GuildResponse getGuild(
-            final Principal p,
             final @PathVariable String region,
             final @PathVariable String realm,
             final @PathVariable String name){
@@ -58,7 +57,6 @@ public class GuildController extends RESTController{
     
     @RequestMapping(value = "/{guildId}", method = RequestMethod.GET)
     public GuildResponse getGuild(
-            final Principal p,
             final @PathVariable long guildId){
         
         Guild   guild           =   guildService.getEntity(guildId);
@@ -73,7 +71,7 @@ public class GuildController extends RESTController{
             final @PathVariable long guildId){
         
         User user               =   getActiveUser(p);
-        Guild guild             =   guildService.updateGuild(user, guildId);
+        Guild guild             =   guildService.updateGuild(user.getId(), guildId);
         GuildResponse response  =   new GuildResponse(guild);
         
         return response;
@@ -84,7 +82,7 @@ public class GuildController extends RESTController{
             final @PathVariable long guildId){
         
         User user               =   getActiveUser(p);
-        Guild guild             =   guildService.setEntityReadOnly(user, guildId, true);
+        Guild guild             =   guildService.setEntityReadOnly(user.getId(), guildId, true);
         GuildResponse response  =   new GuildResponse(guild);
         
         return response;
@@ -96,7 +94,7 @@ public class GuildController extends RESTController{
             final @PathVariable long guildId){
         
         User user               =   getActiveUser(p);
-        Guild guild             =   guildService.setEntityReadOnly(user, guildId, false);
+        Guild guild             =   guildService.setEntityReadOnly(user.getId(), guildId, false);
         GuildResponse response  =   new GuildResponse(guild);
         
         return response;
@@ -108,7 +106,7 @@ public class GuildController extends RESTController{
             final @PathVariable long guildId){
         
         User user               =   getActiveUser(p);
-        Guild guild             =   guildService.setEntityOwnershipLocked(user, guildId, true);
+        Guild guild             =   guildService.setEntityOwnershipLocked(user.getId(), guildId, true);
         GuildResponse response  =   new GuildResponse(guild);
         
         return response;
@@ -120,7 +118,7 @@ public class GuildController extends RESTController{
             final @PathVariable long guildId){
         
         User user               =   getActiveUser(p);
-        Guild guild             =   guildService.setEntityOwnershipLocked(user, guildId, false);
+        Guild guild             =   guildService.setEntityOwnershipLocked(user.getId(), guildId, false);
         GuildResponse response  =   new GuildResponse(guild);
         
         return response;
@@ -133,7 +131,7 @@ public class GuildController extends RESTController{
             final @RequestBody ChangeOwnershipRequest r){
         
         User user               =   getActiveUser(p);
-        Guild guild             =   guildService.changeUser(user, guildId, r.getUserId());
+        Guild guild             =   guildService.changeUser(user.getId(), guildId, r.getUserId());
         GuildResponse response  =   new GuildResponse(guild);
         
         return response;
@@ -145,7 +143,7 @@ public class GuildController extends RESTController{
             final @PathVariable long guildId){
         
         User user               =   getActiveUser(p);
-        Guild guild             =   guildService.takeOwnership(user, guildId);
+        Guild guild             =   guildService.takeOwnership(user.getId(), guildId);
         GuildResponse response  =   new GuildResponse(guild);
         
         return response;
@@ -157,7 +155,7 @@ public class GuildController extends RESTController{
             final @PathVariable long guildId){
         
         User user                           =   getActiveUser(p);
-        OwnedEntityOwnershipRequest request =   guildService.requestOwnship(user, guildId);
+        OwnedEntityOwnershipRequest request =   guildService.requestOwnship(user.getId(), guildId);
         OwnershipRequestResponse response   =   new OwnershipRequestResponse(request);
         
         return response;
@@ -170,7 +168,7 @@ public class GuildController extends RESTController{
             final @RequestBody OwnershipRequestRequest r){
         
         User user               =   getActiveUser(p);
-        Guild guild             =   guildService.approveOwnershipRequest(user, guildId, r.getRequestId());
+        Guild guild             =   guildService.approveOwnershipRequest(user.getId(), guildId, r.getRequestId());
         GuildResponse response  =   new GuildResponse(guild);
         
         return response;
@@ -184,7 +182,7 @@ public class GuildController extends RESTController{
             final @RequestBody OwnershipRequestRequest r){
         
         User user   =   getActiveUser(p);
-        guildService.rejectOwnershipRequest(user, r.getRequestId());
+        guildService.rejectOwnershipRequest(user.getId(), r.getRequestId());
     } 
     
     @Data

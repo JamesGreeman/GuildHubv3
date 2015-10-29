@@ -73,7 +73,7 @@ public class CharacterController  extends RESTController {
             final @PathVariable long characterId){
         
         User user                   =   getActiveUser(p);
-        WarcraftCharacter character =   characterService.updateCharacter(user, characterId);
+        WarcraftCharacter character =   characterService.updateCharacter(user.getId(), characterId);
         CharacterResponse response  =   new CharacterResponse(character);
         
         return response;
@@ -84,7 +84,7 @@ public class CharacterController  extends RESTController {
             final @PathVariable long characterId){
         
         User user                   =   getActiveUser(p);
-        WarcraftCharacter character =   characterService.setEntityReadOnly(user, characterId, true);
+        WarcraftCharacter character =   characterService.setEntityReadOnly(user.getId(), characterId, true);
         CharacterResponse response  =   new CharacterResponse(character);
         
         return response;
@@ -96,7 +96,7 @@ public class CharacterController  extends RESTController {
             final @PathVariable long characterId){
         
         User user                   =   getActiveUser(p);
-        WarcraftCharacter character =   characterService.setEntityReadOnly(user, characterId, false);
+        WarcraftCharacter character =   characterService.setEntityReadOnly(user.getId(), characterId, false);
         CharacterResponse response  =   new CharacterResponse(character);
         
         return response;
@@ -108,7 +108,7 @@ public class CharacterController  extends RESTController {
             final @PathVariable long characterId){
         
         User user                   =   getActiveUser(p);
-        WarcraftCharacter character =   characterService.setEntityOwnershipLocked(user, characterId, true);
+        WarcraftCharacter character =   characterService.setEntityOwnershipLocked(user.getId(), characterId, true);
         CharacterResponse response  =   new CharacterResponse(character);
         
         return response;
@@ -120,7 +120,7 @@ public class CharacterController  extends RESTController {
             final @PathVariable long characterId){
         
         User user                   =   getActiveUser(p);
-        WarcraftCharacter character =   characterService.setEntityOwnershipLocked(user, characterId, false);
+        WarcraftCharacter character =   characterService.setEntityOwnershipLocked(user.getId(), characterId, false);
         CharacterResponse response  =   new CharacterResponse(character);
         
         return response;
@@ -133,7 +133,7 @@ public class CharacterController  extends RESTController {
             final @RequestBody ChangeOwnershipRequest r){
         
         User user   =   getActiveUser(p);
-        WarcraftCharacter character =   characterService.changeUser(user, characterId, r.getUserId());
+        WarcraftCharacter character =   characterService.changeUser(user.getId(), characterId, r.getUserId());
         CharacterResponse response  =   new CharacterResponse(character);
         
         return response;
@@ -145,7 +145,7 @@ public class CharacterController  extends RESTController {
             final @PathVariable long characterId){
         
         User user   =   getActiveUser(p);
-        WarcraftCharacter character =   characterService.takeOwnership(user, characterId);
+        WarcraftCharacter character =   characterService.takeOwnership(user.getId(), characterId);
         CharacterResponse response  =   new CharacterResponse(character);
         
         return response;
@@ -157,7 +157,7 @@ public class CharacterController  extends RESTController {
             final @PathVariable long characterId){
         
         User user   =   getActiveUser(p);
-        OwnedEntityOwnershipRequest request  =   characterService.requestOwnship(user, characterId);
+        OwnedEntityOwnershipRequest request  =   characterService.requestOwnship(user.getId(), characterId);
         OwnershipRequestResponse response    =   new OwnershipRequestResponse(request);
         
         return response;
@@ -170,7 +170,7 @@ public class CharacterController  extends RESTController {
             final @RequestBody OwnershipRequestRequest r){
         
         User user   =   getActiveUser(p);
-        WarcraftCharacter character =   characterService.approveOwnershipRequest(user, characterId, r.getRequestId());
+        WarcraftCharacter character =   characterService.approveOwnershipRequest(user.getId(), characterId, r.getRequestId());
         CharacterResponse response  =   new CharacterResponse(character);
         
         return response;
@@ -184,7 +184,7 @@ public class CharacterController  extends RESTController {
             final @RequestBody OwnershipRequestRequest r){
         
         User user   =   getActiveUser(p);
-        characterService.rejectOwnershipRequest(user, r.getRequestId());
+        characterService.rejectOwnershipRequest(user.getId(), r.getRequestId());
     } 
     
     @RequestMapping(value = "/{characterId}/ownership/verify", method = RequestMethod.POST)
@@ -193,7 +193,7 @@ public class CharacterController  extends RESTController {
             final @PathVariable long characterId){
         
         User user   =   getActiveUser(p);
-        WarcraftCharacterVerificationRequest request    =   characterService.takeOwnershipViaVerfication(user, characterId);
+        WarcraftCharacterVerificationRequest request    =   characterService.takeOwnershipViaVerfication(user.getId(), characterId);
         VerificationRequestResponse response    =   new VerificationRequestResponse(request);
         
         return response;
@@ -206,7 +206,7 @@ public class CharacterController  extends RESTController {
             final @RequestBody VerificationCheckRequest r){
         
         User user   =   getActiveUser(p);
-        WarcraftCharacter character =   characterService.checkVerificationRequest(user, characterId, r.getRequestId());
+        WarcraftCharacter character =   characterService.checkVerificationRequest(user.getId(), characterId, r.getRequestId());
         CharacterResponse response  =   new CharacterResponse(character);
         
         return response;

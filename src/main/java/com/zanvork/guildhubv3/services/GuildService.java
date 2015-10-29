@@ -58,15 +58,16 @@ public class GuildService extends OwnedEntityBackendService<Guild>{
     
     /**
      * Create a guild from a guild name, realm and region.
-     * @param user
+     * @param userId
      * @param name name of the guild
      * @param realm realm the guild is in
      * @param region region the realm is on
      * @return the new guild created
      */
-    public Guild createGuild(User user, String name, String realm, String region)
+    public Guild createGuild(long userId, String name, String realm, String region)
             throws RestObjectNotFoundException, EntityAlreadyExistsException {
         
+        User user   =   userService.getUser(userId);
         String key  =   guildNameRealmRegionToKey(name, realm, region);
         if (entityExists(key)){
             throw new EntityAlreadyExistsException(
@@ -83,15 +84,15 @@ public class GuildService extends OwnedEntityBackendService<Guild>{
     
     /**
      * Update guild from guild name, realm and region.
-     * @param user
+     * @param userId
      * @param id
      * @return the updated guild
      */
-    public Guild updateGuild(User user, long id)
+    public Guild updateGuild(long userId, long id)
             throws EntityNotFoundException, RestObjectNotFoundException, ReadOnlyEntityException, NotAuthorizedException{
         
         Guild guild         =   getEntity(id);
-        userCanEditEntity(user, guild);    
+        userCanEditEntity(userId, guild);    
         RestGuild guildData =   apiService.getGuild(guild.getName(), guild.getRealm().getName(), guild.getRealm().getRegionName());
         updateGuild(guild, guildData);
         return guild;
@@ -103,11 +104,11 @@ public class GuildService extends OwnedEntityBackendService<Guild>{
      * @param id
      * @return The updated guild
      */
-    public Guild updateGuildMembers(User user, long id)
+    public Guild updateGuildMembers(long userId, long id)
             throws EntityNotFoundException, RestObjectNotFoundException, ReadOnlyEntityException, NotAuthorizedException{
         
         Guild guild         =   getEntity(id);
-        userCanEditEntity(user, guild);
+        userCanEditEntity(userId, guild);
         RestGuild guildData =   apiService.getGuild(guild.getName(), guild.getRealm().getName(), guild.getRealm().getRegionName());
         updateGuild(guild, guildData, true);
         return guild;
@@ -173,9 +174,10 @@ public class GuildService extends OwnedEntityBackendService<Guild>{
     
     //Overided as special case where a guild leader's owner can modify/take ownership of huild
     @Override
-    protected boolean userCanEditEntity(User user, Guild guild)
+    protected boolean userCanEditEntity(long userId, Guild guild)
             throws ReadOnlyEntityException, NotAuthorizedException{
         
+        User user           =   userService.getUser(userId);
         String errorText    =   "Cannot update entity with key '" + entityToKey(guild) + "'.";
         
         //Take ownership of a guild when updating it if not already owned.
