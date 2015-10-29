@@ -215,13 +215,13 @@ public class CharacterController  extends RESTController {
     //Request Objects
     
     @Data
-    protected class NewCharacterRequest{
+    static class NewCharacterRequest{
         private String region;
         private String realm;
         private String name;
     }
     @Data
-    protected class VerificationCheckRequest{
+    static class VerificationCheckRequest{
         private long requestId;
     }
     

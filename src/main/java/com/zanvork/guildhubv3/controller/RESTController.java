@@ -26,13 +26,13 @@ public abstract class RESTController {
     
     
     @Data
-    protected class ChangeOwnershipRequest{
+    static class ChangeOwnershipRequest{
         private long userId;
     }
     
     
     @Data
-    protected class OwnershipRequestRequest{
+    static class OwnershipRequestRequest{
         private long requestId;
     }
     

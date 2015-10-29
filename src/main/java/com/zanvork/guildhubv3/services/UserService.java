@@ -57,6 +57,17 @@ public class UserService implements UserDetailsService, BackendService {
         return user;
     }
     
+    public boolean userExists(long id){
+        synchronized(usersLock){
+            return users.containsKey(id);
+        }
+    }
+    public boolean userExists(String username){
+        synchronized(usersByNameLock){
+            return usersByName.containsKey(username);
+        }
+    }
+    
     public User getUser(String username)
             throws EntityNotFoundException{
         
@@ -89,9 +100,10 @@ public class UserService implements UserDetailsService, BackendService {
      * @return the new User account
      */    
     public User createUser(String username, String email, String password){
-       if (getUser(username ) != null){
-           return null;
-       }
+        if (userExists(username)){
+            throw new EntityAlreadyExistsException(
+                    "Could not create user with name '" + username + "', a user with that name already exists");
+        }
        User user    =   new User();
        user.setUsername(username);
        user.setEmailAddress(email);

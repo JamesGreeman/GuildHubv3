@@ -260,32 +260,32 @@ public class TeamController extends RESTController {
     //Requests
     
     @Data
-    protected class NewTeamRequest{
+    static class NewTeamRequest{
         private String name;
         private String region;
     }
     
     @Data
-    protected class DeleteTeamRequest{
+    static class DeleteTeamRequest{
         private long teamId;
         private String password;
     }
     
     @Data
-    protected class MemberRequest{
+    static class MemberRequest{
         private long teamId;
         private long characterId;
     }
     
     @Data
-    protected class RemoveMemberRequest{
+    static class RemoveMemberRequest{
         private long teamId;
         private long characterId;
         private String password;
     }
     
     @Data
-    protected class InviteRequest{
+    static class InviteRequest{
         private long inviteId;
     }
     

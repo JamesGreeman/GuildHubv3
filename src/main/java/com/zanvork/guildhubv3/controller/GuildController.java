@@ -188,7 +188,7 @@ public class GuildController extends RESTController{
     } 
     
     @Data
-    protected class NewGuildRequest{
+    static class NewGuildRequest{
         private String name;
         private String region;
         private String realm;

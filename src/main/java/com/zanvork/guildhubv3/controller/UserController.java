@@ -1,8 +1,12 @@
 package com.zanvork.guildhubv3.controller;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.zanvork.guildhubv3.model.User;
 import com.zanvork.guildhubv3.services.UserService;
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.Data;
@@ -82,7 +86,7 @@ public class UserController extends RESTController {
         userService.deleteUser(userId);
     }
 
-    @RequestMapping(value = "/admin/password/{username}/{newPassword}", method = RequestMethod.PUT)
+    @RequestMapping(value = "/admin/password", method = RequestMethod.PUT)
     @ResponseStatus(value = HttpStatus.NO_CONTENT)
     public void adminChangePassword(
             final @RequestBody AdminChangePasswordRequest r) {
@@ -95,23 +99,25 @@ public class UserController extends RESTController {
     }
 
     //Request Objects
+    
     @Data
-    protected class SignupRequest {
+    static class SignupRequest {
 
         private String username;
         private String email;
         private String password;
+        
     }
 
     @Data
-    protected class ChangePasswordRequest {
+    static class ChangePasswordRequest {
 
         private String oldPassword;
         private String newPassword;
     }
 
     @Data
-    protected class AdminChangePasswordRequest {
+    static class AdminChangePasswordRequest {
 
         private long userId;
         private String newPassword;
@@ -119,6 +125,7 @@ public class UserController extends RESTController {
 
     //ResponseOjects
     @Data
+    @JsonInclude(Include.NON_NULL)
     protected class UserSummaryResponse {
 
         private UserResponse user;
@@ -133,22 +140,32 @@ public class UserController extends RESTController {
         UserSummaryResponse(User user) {
             this.user = new UserResponse(user);
 
-            characters = user.getCharacters().stream()
-                    .map((character) -> new CharacterResponse(character))
-                    .collect(Collectors.toList());
-            guilds = user.getGuilds().stream()
-                    .map((guild) -> new GuildResponse(guild))
-                    .collect(Collectors.toList());
-            teams = user.getTeams().stream()
-                    .map((team) -> new TeamResponse(team))
-                    .collect(Collectors.toList());
+            if (user.getCharacters() != null){
+                characters = user.getCharacters().stream()
+                        .map((character) -> new CharacterResponse(character))
+                        .collect(Collectors.toList());
+            }
+            if (user.getGuilds() != null){
+                guilds = user.getGuilds().stream()
+                        .map((guild) -> new GuildResponse(guild))
+                        .collect(Collectors.toList());
+            }
+            if (user.getTeams() != null){
+                teams = user.getTeams().stream()
+                        .map((team) -> new TeamResponse(team))
+                        .collect(Collectors.toList());
+            }
 
-            ownershipRequests = user.getOwnershipRequests().stream()
-                    .map((ownershipRequest) -> new OwnershipRequestResponse(ownershipRequest))
-                    .collect(Collectors.toList());
-            teamInvites = user.getTeamInvites().stream()
-                    .map((teamInvite) -> new TeamInviteResponse(teamInvite))
-                    .collect(Collectors.toList());
+            if (user.getOwnershipRequests() != null){
+                ownershipRequests = user.getOwnershipRequests().stream()
+                        .map((ownershipRequest) -> new OwnershipRequestResponse(ownershipRequest))
+                        .collect(Collectors.toList());
+            }
+            if (user.getTeamInvites() != null){
+                teamInvites = user.getTeamInvites().stream()
+                        .map((teamInvite) -> new TeamInviteResponse(teamInvite))
+                        .collect(Collectors.toList());
+            }
         }
     }
 
