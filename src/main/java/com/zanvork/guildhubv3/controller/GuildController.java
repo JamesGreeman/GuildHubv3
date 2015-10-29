@@ -163,7 +163,7 @@ public class GuildController extends RESTController{
         return response;
     }
     
-    @RequestMapping(value = "/{guildId}/ownership/request", method = RequestMethod.POST)
+    @RequestMapping(value = "/{guildId}/ownership/request", method = RequestMethod.PUT)
     public GuildResponse approveOwnershipRequest(
             final Principal p,
             final @PathVariable long guildId,

@@ -163,7 +163,7 @@ public class CharacterController  extends RESTController {
         return response;
     }
     
-    @RequestMapping(value = "/{characterId}/ownership/request", method = RequestMethod.POST)
+    @RequestMapping(value = "/{characterId}/ownership/request", method = RequestMethod.PUT)
     public CharacterResponse approveOwnershipRequest(
             final Principal p,
             final @PathVariable long characterId,

@@ -28,7 +28,7 @@ public class TeamInvite implements Serializable {
     @ManyToOne
     private Team team;
     @ManyToOne
-    private WarcraftCharacter character;
+    private WarcraftCharacter characterInvited;
     
     @ManyToOne
     private User requester;    

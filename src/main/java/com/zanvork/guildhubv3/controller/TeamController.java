@@ -232,7 +232,7 @@ public class TeamController extends RESTController {
         return response;
     }
     
-    @RequestMapping(value = "/{teamId}/ownership/request", method = RequestMethod.POST)
+    @RequestMapping(value = "/{teamId}/ownership/request", method = RequestMethod.PUT)
     public TeamResponse approveOwnershipRequest(
             final Principal p,
             final @PathVariable long teamId,

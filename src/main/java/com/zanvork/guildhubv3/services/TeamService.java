@@ -115,7 +115,7 @@ public class TeamService extends OwnedEntityBackendService<Team>{
             );
         }
         TeamInvite invite   =   new TeamInvite();
-        invite.setCharacter(character);
+        invite.setCharacterInvited(character);
         invite.setDateCreated(new Date());
         invite.setTeam(team);
         invite.setRequester(user);
@@ -140,8 +140,8 @@ public class TeamService extends OwnedEntityBackendService<Team>{
     
     public void acceptTeamInvite(User user, long inviteId){
         TeamInvite invite   =   getInvite(inviteId);
-        characterService.canChangeEntityOwner(user, invite.getCharacter());
-        long characterId    =   invite.getCharacter().getId();
+        characterService.canChangeEntityOwner(user, invite.getCharacterInvited());
+        long characterId    =   invite.getCharacterInvited().getId();
         long teamId         =   invite.getTeam().getId();
         if (invite.getTeam().hasMember(characterId)){
             throw new EntityAlreadyExistsException(
@@ -150,7 +150,7 @@ public class TeamService extends OwnedEntityBackendService<Team>{
             );
         }
         TeamMember teamMember   =   new TeamMember();
-        teamMember.setMember(invite.getCharacter());
+        teamMember.setMember(invite.getCharacterInvited());
         teamMember.setTeam(invite.getTeam());
         
         saveEntity(invite.getTeam());
@@ -159,7 +159,7 @@ public class TeamService extends OwnedEntityBackendService<Team>{
     
     public void rejectTeamInvite(User user, long inviteId){
         TeamInvite invite   =   getInvite(inviteId);
-        characterService.canChangeEntityOwner(user, invite.getCharacter());
+        characterService.canChangeEntityOwner(user, invite.getCharacterInvited());
         deleteInvite(invite);
     }
     
