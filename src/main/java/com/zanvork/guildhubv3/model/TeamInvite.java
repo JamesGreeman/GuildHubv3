@@ -25,15 +25,12 @@ public class TeamInvite implements Serializable {
     @Temporal(javax.persistence.TemporalType.DATE)
     private Date dateCreated;
     
-    @ManyToOne
-    private Team team;
-    @ManyToOne
-    private WarcraftCharacter characterInvited;
+    private long teamId;
+            
+    private long characterInvitedId;
     
-    @ManyToOne
-    private User requester;    
+    private long requesterId;    
     
-    @ManyToOne
-    private User characterOwner;
+    private long characterOwnerId;
     
 }

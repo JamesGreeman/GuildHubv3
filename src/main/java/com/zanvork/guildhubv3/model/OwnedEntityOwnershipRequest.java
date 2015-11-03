@@ -1,5 +1,6 @@
 package com.zanvork.guildhubv3.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.io.Serializable;
 import java.util.Date;
 import javax.persistence.Entity;
@@ -8,6 +9,8 @@ import javax.persistence.Id;
 import javax.persistence.ManyToOne;
 import javax.persistence.Temporal;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 /**
  *
@@ -15,6 +18,9 @@ import lombok.Data;
  */
 
 @Data
+@EqualsAndHashCode(exclude="currentOwner")
+@ToString(exclude="currentOwner")
+@JsonIgnoreProperties("currentOwner")
 @Entity
 public class OwnedEntityOwnershipRequest implements Serializable {
     
@@ -27,8 +33,7 @@ public class OwnedEntityOwnershipRequest implements Serializable {
     
     private long subjectId;
     
-    @ManyToOne
-    private User currentOwner;
+    private long currentOwnerId;
     
     private long requesterId;
     

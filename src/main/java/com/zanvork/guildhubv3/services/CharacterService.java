@@ -192,8 +192,8 @@ public class CharacterService extends OwnedEntityBackendService<WarcraftCharacte
                     CharacterItem item  =   new CharacterItem();
                     if (characterItems.containsKey(itemSlot)){
                         item    =   characterItems.remove(itemSlot);
-                        item.setSlot(itemSlot);
                     }
+                    item.setSlot(itemSlot);
                     item.setOwner(character);
                     item.setBlizzardID(itemData.getId());
                     item.setItemLevel(itemData.getItemLevel());
@@ -220,8 +220,8 @@ public class CharacterService extends OwnedEntityBackendService<WarcraftCharacte
         }
         
         verificationRequest.setDateCreated(new Date());
-        verificationRequest.setRequester(user);
-        verificationRequest.setSubject(character);
+        verificationRequest.setRequesterId(user.getId());
+        verificationRequest.setSubjectId(character.getId());
         verificationRequest.setSlot(character.getItems().get(random.nextInt(character.getItems().size())).getSlot());
         saveVerificationRequest(verificationRequest);
         
@@ -232,7 +232,7 @@ public class CharacterService extends OwnedEntityBackendService<WarcraftCharacte
         
         User user       =   userService.getUser(userId);
         WarcraftCharacterVerificationRequest verificationRequest    =   getVerificationRequest(verificationRequestId);
-        WarcraftCharacter character =   verificationRequest.getSubject();
+        WarcraftCharacter character =   getEntity(verificationRequest.getSubjectId());
         if (character.getId() != characterId){
             throw new UnexpectedEntityException(
                     "Character id expected ('" + characterId + 
@@ -240,17 +240,18 @@ public class CharacterService extends OwnedEntityBackendService<WarcraftCharacte
                     character.getId() + "')."
             );
         }
-        if (userId != verificationRequest.getRequester().getId()){
+        if (userId != verificationRequest.getRequesterId()){
             throw new NotAuthorizedException(
                     "Requesting user ('" + user.getId() + 
                     "') does not match the id in the verification request ('" + 
-                    verificationRequest.getRequester().getId() + "')."
+                    verificationRequest.getRequesterId() + "')."
             );
             
         }
         RestCharacter characterData =   apiService.getCharacter(character.getRealm().getRegionName(), character.getRealm().getName(), character.getName());
         Map<String, RestItem> items =   characterData.getItems().getItems();
-        if (items.containsKey(verificationRequest.getSlot().name().toLowerCase())){
+        String slotName             =   verificationRequest.getSlot().name().toLowerCase();
+        if (items.containsKey(slotName) && items.get(slotName) != null){
             throw new NotAuthorizedException(
                     "Verification failed, character with id '" + characterId + 
                     "' could not be verified, itemSlot '" +

@@ -25,9 +25,9 @@ import lombok.ToString;
  */
 
 @Data
-@EqualsAndHashCode(exclude={"passwordHash", "characters", "guilds", "teams", "ownershipRequests"})
-@ToString(exclude={"passwordHash", "characters", "guilds", "teams", "ownershipRequests"})
-@JsonIgnoreProperties({"passwordHash", "password", "characters", "guilds", "teams", "ownershipRequests"} )
+@EqualsAndHashCode(exclude={"characters", "guilds", "teams", "ownershipRequests", "teamInvites"})
+@ToString(exclude={"passwordHash", "characters", "guilds", "teams", "ownershipRequests", "teamInvites"})
+@JsonIgnoreProperties({"passwordHash", "password", "characters", "guilds", "teams", "ownershipRequests", "teamInvites"} )
 @Entity
 @Table(name = "users")
 public class User implements Serializable {
@@ -61,10 +61,10 @@ public class User implements Serializable {
     @OneToMany(mappedBy = "owner", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval=true)
     private Set<Team> teams;
     
-    @OneToMany(mappedBy = "currentOwner", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval=true)
+    @OneToMany(mappedBy = "currentOwnerId", fetch = FetchType.EAGER)
     private Set<OwnedEntityOwnershipRequest> ownershipRequests;
     
-    @OneToMany(mappedBy = "characterOwner", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval=true)
+    @OneToMany(mappedBy = "characterOwnerId", fetch = FetchType.EAGER)
     private Set<TeamInvite> teamInvites;
     
     public User(){

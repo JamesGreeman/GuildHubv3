@@ -29,11 +29,9 @@ public class WarcraftCharacterVerificationRequest implements Serializable {
     @Temporal(javax.persistence.TemporalType.DATE)
     private Date dateCreated;
     
-    @ManyToOne
-    private WarcraftCharacter subject;
+    private long subjectId;
     
-    @ManyToOne
-    private User requester;
+    private long requesterId;
     
     @Enumerated(EnumType.STRING)
     @Column(columnDefinition = "ENUM('HEAD', 'NECK', 'SHOULDER', 'BACK', "

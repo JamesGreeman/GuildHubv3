@@ -118,11 +118,11 @@ public class TeamService extends OwnedEntityBackendService<Team>{
             );
         }
         TeamInvite invite   =   new TeamInvite();
-        invite.setCharacterInvited(character);
+        invite.setCharacterInvitedId(character.getId());
         invite.setDateCreated(new Date());
-        invite.setTeam(team);
-        invite.setRequester(user);
-        invite.setCharacterOwner(character.getOwner());
+        invite.setTeamId(team.getId());
+        invite.setRequesterId(user.getId());
+        invite.setCharacterOwnerId(character.getOwner().getId());
         
         saveInvite(invite);
         
@@ -142,27 +142,30 @@ public class TeamService extends OwnedEntityBackendService<Team>{
     }
     
     public void acceptTeamInvite(long userId, long inviteId){
-        TeamInvite invite   =   getInvite(inviteId);
-        characterService.canChangeEntityOwner(userId, invite.getCharacterInvited());
-        long characterId    =   invite.getCharacterInvited().getId();
-        long teamId         =   invite.getTeam().getId();
-        if (invite.getTeam().hasMember(characterId)){
+        TeamInvite invite           =   getInvite(inviteId);
+        WarcraftCharacter character =   characterService.getEntity(invite.getCharacterInvitedId());
+        Team team                   =   getEntity(invite.getTeamId());
+        characterService.canChangeEntityOwner(userId, character);
+        long characterId            =   invite.getCharacterInvitedId();
+        long teamId                 =   invite.getTeamId();
+        if (team.hasMember(characterId)){
             throw new EntityAlreadyExistsException(
                 "Cannot join team with id '" + teamId + "' on character with id '" + characterId + "'."
                     + "  This team already contains this character."
             );
         }
         TeamMember teamMember   =   new TeamMember();
-        teamMember.setMember(invite.getCharacterInvited());
-        teamMember.setTeam(invite.getTeam());
+        teamMember.setMember(character);
+        teamMember.setTeam(team);
         
-        saveEntity(invite.getTeam());
+        saveEntity(team);
         deleteInvite(invite);
     }
     
     public void rejectTeamInvite(long userId, long inviteId){
-        TeamInvite invite   =   getInvite(inviteId);
-        characterService.canChangeEntityOwner(userId, invite.getCharacterInvited());
+        TeamInvite invite           =   getInvite(inviteId);
+        WarcraftCharacter character =   characterService.getEntity(invite.getCharacterInvitedId());
+        characterService.canChangeEntityOwner(userId, character);
         deleteInvite(invite);
     }
     

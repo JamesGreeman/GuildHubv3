@@ -111,7 +111,7 @@ public abstract class RESTController {
             requestId   =   request.getId();
             requesterId =   request.getRequesterId();
             subjectId   =   request.getSubjectId();
-            ownerId     =   request.getCurrentOwner().getId();
+            ownerId     =   request.getCurrentOwnerId();
             subjectType =   request.getEntityType();
             
         }
@@ -120,15 +120,15 @@ public abstract class RESTController {
     @Data
     protected class TeamInviteResponse{
         private long inviteId;
-        private TeamResponse team;
-        private CharacterResponse character;
-        private UserResponse inviter;
+        private long teamId;
+        private long characterId;
+        private long inviterId;
         
         TeamInviteResponse(TeamInvite invite){
             inviteId            =   invite.getId();
-            team                =   new TeamResponse(invite.getTeam());
-            character           =   new CharacterResponse(invite.getCharacterInvited());
-            inviter             =   new UserResponse(invite.getRequester());
+            teamId              =   invite.getTeamId();
+            characterId         =   invite.getCharacterInvitedId();
+            inviterId           =   invite.getRequesterId();
         }
     }
 }

@@ -236,8 +236,8 @@ public class CharacterController  extends RESTController {
 
         public VerificationRequestResponse(WarcraftCharacterVerificationRequest request) {
             requestId   =   request.getId();
-            requesterId =   request.getRequester().getId();
-            subjectId   =   request.getSubject().getId();
+            requesterId =   request.getRequesterId();
+            subjectId   =   request.getSubjectId();
             itemSlot    =   request.getSlot().name();
         }
     }
