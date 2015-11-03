@@ -43,7 +43,7 @@ public class CharacterController  extends RESTController {
         return response;
     }
     
-    @RequestMapping(value = "/{regionName}/{realmName}/{name}", method = RequestMethod.GET)
+    @RequestMapping(value = "/{region}/{realm}/{name}", method = RequestMethod.GET)
     public CharacterResponse getCharacter(
             final Principal p,
             final @PathVariable String region,

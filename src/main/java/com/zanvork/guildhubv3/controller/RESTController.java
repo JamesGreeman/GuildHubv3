@@ -109,7 +109,7 @@ public abstract class RESTController {
         
         public OwnershipRequestResponse(OwnedEntityOwnershipRequest request){
             requestId   =   request.getId();
-            requesterId =   request.getRequester().getId();
+            requesterId =   request.getRequesterId();
             subjectId   =   request.getSubjectId();
             ownerId     =   request.getCurrentOwner().getId();
             subjectType =   request.getEntityType();

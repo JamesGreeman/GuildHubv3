@@ -123,7 +123,7 @@ public class CharacterService extends OwnedEntityBackendService<WarcraftCharacte
         WarcraftCharacter character =   getEntity(id);
         
         userCanEditEntity(userId, character);
-        RestCharacter characterData =   apiService.getCharacter(character.getName(), character.getRealm().getName(), character.getRealm().getRegionName());
+        RestCharacter characterData =   apiService.getCharacter(character.getRealm().getRegionName(), character.getRealm().getName(), character.getName());
         updateCharacter(character, characterData);
         return character;
     }

@@ -29,8 +29,8 @@ public class OwnedEntityOwnershipRequest implements Serializable {
     
     @ManyToOne
     private User currentOwner;
-    @ManyToOne
-    private User requester;
+    
+    private long requesterId;
     
     private String entityType;
     

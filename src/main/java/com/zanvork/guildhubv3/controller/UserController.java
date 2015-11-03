@@ -1,12 +1,10 @@
 package com.zanvork.guildhubv3.controller;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.zanvork.guildhubv3.model.User;
 import com.zanvork.guildhubv3.services.UserService;
 import java.security.Principal;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.Data;
@@ -44,8 +42,9 @@ public class UserController extends RESTController {
     public UserSummaryResponse getUserSummary(
             final Principal p) {
 
-        User user = getActiveUser(p);
-        UserSummaryResponse response = new UserSummaryResponse(user);
+        User user       =   getActiveUser(p);
+        User fullUser   =   userService.getUser(user.getId());
+        UserSummaryResponse response = new UserSummaryResponse(fullUser);
 
         return response;
     }
@@ -83,7 +82,8 @@ public class UserController extends RESTController {
     public void removeUser(
             final @PathVariable long userId) {
 
-        userService.deleteUser(userId);
+        throw new UnsupportedOperationException("Not yet implemented");
+        //userService.deleteUser(userId);
     }
 
     @RequestMapping(value = "/admin/password", method = RequestMethod.PUT)

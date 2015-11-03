@@ -117,7 +117,7 @@ public abstract class OwnedEntityBackendService<E extends OwnedEntity> implement
         } 
         OwnedEntityOwnershipRequest ownershipRequest  =   new OwnedEntityOwnershipRequest();
         ownershipRequest.setDateCreated(new Date());
-        ownershipRequest.setRequester(user);
+        ownershipRequest.setRequesterId(user.getId());
         ownershipRequest.setCurrentOwner(entity.getOwner());
         ownershipRequest.setSubjectId(entityId);
         ownershipRequest.setEntityType(entity.getClass().getSimpleName());
@@ -145,8 +145,10 @@ public abstract class OwnedEntityBackendService<E extends OwnedEntity> implement
                     entity.getOwner().getId() + "')."
             );
         }
-        entity  =   changeUser(userId, entity, ownershipRequest.getRequester().getId());
-        deleteOwnershipRequest(ownershipRequest);
+        User user   =   userService.getUser(userId);
+        entity      =   changeUser(userId, entity, ownershipRequest.getRequesterId());
+        user.getOwnershipRequests().remove(ownershipRequest);
+        userService.saveUser(user);
         return entity;
         
     }
@@ -155,13 +157,14 @@ public abstract class OwnedEntityBackendService<E extends OwnedEntity> implement
         
         User user   =   userService.getUser(userId);
         OwnedEntityOwnershipRequest ownershipRequest    =   getOwnershipRequest(ownershipRequestId);
-        E entity                                        =   getEntity(ownershipRequest.getId());
+        E entity                                        =   getEntity(ownershipRequest.getSubjectId());
         if (user.getId() != entity.getOwner().getId()){
             throw new NotAuthorizedException(
                     "User is not the owner of the requested entity"
             );
         }
-        deleteOwnershipRequest(ownershipRequest);
+        user.getOwnershipRequests().remove(ownershipRequest);
+        userService.saveUser(user);
         
     }
     
@@ -268,14 +271,6 @@ public abstract class OwnedEntityBackendService<E extends OwnedEntity> implement
        
         synchronized(ownershipRequestsLock){
             ownershipRequests.put(ownershipRequest.getId(), ownershipRequest);
-        }
-    }
-    
-    public void deleteOwnershipRequest(OwnedEntityOwnershipRequest ownershipRequest){
-        ownershipRequestDAO.delete(ownershipRequest);
-       
-        synchronized(ownershipRequestsLock){
-            ownershipRequests.remove(ownershipRequest.getId());
         }
     }
     
