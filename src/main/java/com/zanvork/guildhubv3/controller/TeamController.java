@@ -43,11 +43,10 @@ public class TeamController extends RESTController {
         return response;
     }
     
-    @RequestMapping(value = "/{regionName}/{realmName}/{name}", method = RequestMethod.GET)
+    @RequestMapping(value = "/{region}/{name}", method = RequestMethod.GET)
     public TeamResponse getTeam(
             final Principal p,
             final @PathVariable String region,
-            final @PathVariable String realm,
             final @PathVariable String name){
         
         Team   team             =   teamService.getTeam(name, region);

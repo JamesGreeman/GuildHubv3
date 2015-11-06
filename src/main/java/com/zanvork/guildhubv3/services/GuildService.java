@@ -5,7 +5,6 @@ import com.zanvork.battlenet.model.RestGuild;
 import com.zanvork.battlenet.service.RestObjectNotFoundException;
 import com.zanvork.battlenet.service.WarcraftAPIService;
 import com.zanvork.guildhubv3.model.Guild;
-import com.zanvork.guildhubv3.model.GuildMember;
 import com.zanvork.guildhubv3.model.Role;
 import com.zanvork.guildhubv3.model.User;
 import com.zanvork.guildhubv3.model.WarcraftCharacter;
@@ -93,14 +92,14 @@ public class GuildService extends OwnedEntityBackendService<Guild>{
         
         Guild guild         =   getEntity(id);
         userCanEditEntity(userId, guild);    
-        RestGuild guildData =   apiService.getGuild(guild.getName(), guild.getRealm().getName(), guild.getRealm().getRegionName());
+        RestGuild guildData =   apiService.getGuild(guild.getRealm().getRegionName(), guild.getRealm().getName(), guild.getName());
         updateGuild(guild, guildData);
         return guild;
     }
     
     /**
      * Update guild members from guild name, realm and region.
-     * @param user
+     * @param userId
      * @param id
      * @return The updated guild
      */
@@ -109,7 +108,7 @@ public class GuildService extends OwnedEntityBackendService<Guild>{
         
         Guild guild         =   getEntity(id);
         userCanEditEntity(userId, guild);
-        RestGuild guildData =   apiService.getGuild(guild.getName(), guild.getRealm().getName(), guild.getRealm().getRegionName());
+        RestGuild guildData =   apiService.getGuild(guild.getRealm().getRegionName(), guild.getRealm().getName(), guild.getName());
         updateGuild(guild, guildData, true);
         return guild;
     }
@@ -130,14 +129,14 @@ public class GuildService extends OwnedEntityBackendService<Guild>{
      * @param updateMembers boolean for whether to update the guild's members
      */
     private void updateGuild(Guild guild, RestGuild guildData, boolean updateMembers){
-        Map<String, GuildMember> guildMembers   =   new HashMap<>();
+        Map<String, WarcraftCharacter> guildMembers   =   new HashMap<>();
         
         //dissassociate existing members of the guild
         if (updateMembers){
             guild.getMembers().stream()
                     .forEach((member) -> {
-                        member.setGuild(null);
-                        guildMembers.put(characterService.entityToKey(member.getMember()), member);
+                        member.setGuildId(-1);
+                        guildMembers.put(characterService.entityToKey(member), member);
                     });
             guild.getMembers().clear();
         }
@@ -149,22 +148,19 @@ public class GuildService extends OwnedEntityBackendService<Guild>{
             if (isLeader || updateMembers){
                 String name     =   characterData.getName();
                 String realm    =   characterData.getRealm();
-                WarcraftCharacter character =   characterService.getCharacter(name, realm, region);
-                if (character == null){
+                String key      =   WarcraftCharacter.characterNameRealmRegionToKey(name, realm, guild.getRealm().getRegionName());
+                WarcraftCharacter character;
+                guildMembers.remove(key);
+                if (characterService.entityExists(key)){
+                    character   =   characterService.getCharacter(name, realm, region);
+                } else {
                     character   =   characterService.createCharacter(name, realm, region);
                 } 
                 if (character != null){
-                    String key          =   characterService.entityToKey(character);
-                    GuildMember member  =   guildMembers.remove(key);
-                    if (member == null){
-                        member  =   new GuildMember();
-                    }
-                    member.setMember(character);
-                    member.setRank(memberData.getRank());
-                    member.setGuild(guild);
-                    guild.addMember(member);
+                    character.setGuildRank(memberData.getRank());
+                    guild.addMember(character);
                     if (isLeader){
-                        guild.setLeader(character);
+                        guild.setLeaderId(character.getId());
                     }
                 }
             }
@@ -193,8 +189,12 @@ public class GuildService extends OwnedEntityBackendService<Guild>{
         //Check if guild is an admin
         if (!user.hasRole(Role.ROLE_ADMIN)){
             //if guild is owned by user or guild's leader is owned by user
+            WarcraftCharacter leader    =   null;
+            if (characterService.entityExists(guild.getId())){
+                leader  =   characterService.getEntity(guild.getId());
+            }
             if (user.getId() != guild.getOwner().getId() &&
-                    (guild.getLeader() == null || guild.getLeader().getOwner() == null || user.getId() != guild.getLeader().getOwner().getId())){
+                    (leader == null || leader.getOwner() == null || user.getId() != leader.getOwner().getId())){
                 throw new NotAuthorizedException(
                         errorText + "  User does has neither admin rights nor owns the object"
                 );

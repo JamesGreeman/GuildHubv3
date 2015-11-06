@@ -40,12 +40,10 @@ public class Guild implements Serializable, OwnedEntity {
     @JoinColumn(nullable = false)
     private Realm realm;
     
-    @OneToMany(mappedBy = "guild", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval=true)
-    private List<GuildMember> members  =   new ArrayList<>();
+    @OneToMany(mappedBy = "guildId", fetch = FetchType.EAGER, cascade = CascadeType.MERGE)
+    private List<WarcraftCharacter> members  =   new ArrayList<>();
     
-    @JoinColumn(nullable = false)
-    @OneToOne(cascade = CascadeType.ALL)
-    private WarcraftCharacter leader;
+    private long leaderId;
     
     @ManyToOne
     private User owner;
@@ -54,8 +52,9 @@ public class Guild implements Serializable, OwnedEntity {
     
     private boolean ownershipLocked;
     
-    public void addMember(GuildMember member){
+    public void addMember(WarcraftCharacter member){
         members.add(member);
+        member.setGuildId(id);
     }
    
 }

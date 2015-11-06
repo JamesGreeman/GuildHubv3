@@ -43,7 +43,7 @@ public class GuildController extends RESTController{
         return response;
     }
     
-    @RequestMapping(value = "/{regionName}/{realmName}/{name}", method = RequestMethod.GET)
+    @RequestMapping(value = "/{region}/{realm}/{name}", method = RequestMethod.GET)
     public GuildResponse getGuild(
             final @PathVariable String region,
             final @PathVariable String realm,

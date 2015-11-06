@@ -25,9 +25,7 @@ import lombok.ToString;
  */
 
 @Data
-@EqualsAndHashCode(exclude="guildMember", callSuper=false)
-@ToString(exclude="guildMember")
-@JsonIgnoreProperties("guildMember")
+@EqualsAndHashCode(callSuper=false)
 @Entity
 @Table(uniqueConstraints=@UniqueConstraint(columnNames={"name", "realm"}))
 public class WarcraftCharacter  implements Serializable, OwnedEntity {
@@ -57,8 +55,9 @@ public class WarcraftCharacter  implements Serializable, OwnedEntity {
     @OneToMany(mappedBy = "owner", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval=true)
     private List<CharacterItem> items;
     
-    @OneToOne(mappedBy = "member")
-    private GuildMember guildMember;
+    private long guildId;
+    
+    private int guildRank;
     
     @ManyToOne
     private User owner;
@@ -66,5 +65,18 @@ public class WarcraftCharacter  implements Serializable, OwnedEntity {
     private boolean readOnly;
     
     private boolean ownershipLocked;
+    
+    
+    public String getKey(){
+        return characterNameRealmRegionToKey(name, realm.getName(), realm.getRegionName());
+    }
+    
+    public static String characterNameRealmRegionToKey(String name, String realmName, String region){
+        String key  =   "null";
+        if (realmName != null && region != null){
+            key =   name.toLowerCase() + "_" + realmName.toLowerCase() + "_" + region.toLowerCase();
+        } 
+        return key;        
+    }
     
 }

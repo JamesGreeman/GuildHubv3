@@ -18,6 +18,7 @@ import com.zanvork.guildhubv3.model.dao.WarcraftCharacterDAO;
 import com.zanvork.guildhubv3.model.dao.WarcraftCharacterVerificationRequestDAO;
 import com.zanvork.guildhubv3.model.enums.ItemSlots;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -63,7 +64,7 @@ public class CharacterService extends OwnedEntityBackendService<WarcraftCharacte
     public WarcraftCharacter getCharacter(String name, String realm, String region)
             throws EntityNotFoundException {
         
-        String key                  =   characterNameRealmRegionToKey(name, realm, region);
+        String key                  =   WarcraftCharacter.characterNameRealmRegionToKey(name, realm, region);
         WarcraftCharacter character =   getEntity(key);
         return character;
     }
@@ -92,7 +93,7 @@ public class CharacterService extends OwnedEntityBackendService<WarcraftCharacte
     public WarcraftCharacter createCharacter(User user, String name, String realm, String region, boolean updateDetails)
             throws RestObjectNotFoundException, EntityAlreadyExistsException {
         
-        String key  =   characterNameRealmRegionToKey(name, realm, region);
+        String key  =   WarcraftCharacter.characterNameRealmRegionToKey(name, realm, region);
         if (entityExists(key)){
             throw new EntityAlreadyExistsException(
                     "Could not create character with key '" + key + "', a character with that key already exists"
@@ -275,23 +276,8 @@ public class CharacterService extends OwnedEntityBackendService<WarcraftCharacte
     public String entityToKey(WarcraftCharacter character){
         String key  =   "null";
         if (character != null){
-            key = characterNameRealmRegionToKey(character.getName(), character.getRealm().getName(), character.getRealm().getRegion().name());
+            key = character.getKey();
         }
-        return key;
-    }
-    
-    /**
-     * Takes a character name, realm and region to create a unique key.
-     * @param name name of the character
-     * @param realm realm the character is on
-     * @param region region the realm is in
-     * @return a unique identifier for this character
-     */
-    public static String characterNameRealmRegionToKey(String name, String realm, String region){
-        String key  =   "null";
-        if (name != null && realm != null && region != null){
-            key =   name.toLowerCase() + "_" + realm.toLowerCase() + "_" + region.toLowerCase();
-        } 
         return key;
     }
     
@@ -377,8 +363,17 @@ public class CharacterService extends OwnedEntityBackendService<WarcraftCharacte
     
     protected void loadCharacterVerificationRequestsFromBackend() {
         Map<Long, WarcraftCharacterVerificationRequest> newVerificationRequesrs          =   new HashMap<>();
+        
+        Calendar cal    =   Calendar.getInstance();
+        cal.setTime(new Date());
+        cal.add(Calendar.DATE, -1);
+        Date yesterday  =   cal.getTime();
         verificationRequestsDAO.findAll().forEach(verificationRequest -> {
-            newVerificationRequesrs.put(verificationRequest.getId(), verificationRequest);
+            if (verificationRequest.getDateCreated().after(yesterday)){
+                newVerificationRequesrs.put(verificationRequest.getId(), verificationRequest);
+            } else {
+                deleteVerificationRequest(verificationRequest);
+            }
         });
         synchronized (verificationRequestsLock){
             verificationRequests    =   newVerificationRequesrs;
