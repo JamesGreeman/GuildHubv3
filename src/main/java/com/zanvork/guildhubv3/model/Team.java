@@ -4,10 +4,10 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.zanvork.guildhubv3.model.enums.Regions;
 import com.zanvork.guildhubv3.services.EntityNotFoundException;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -49,7 +49,7 @@ public class Team  implements Serializable, OwnedEntity {
     private Regions region;
     
     @OneToMany(mappedBy = "team", fetch = FetchType.EAGER, cascade=CascadeType.ALL, orphanRemoval=true)
-    private List<TeamMember> members    =   new ArrayList<>();
+    private Set<TeamMember> members    =   new HashSet<>();
     
     @Transient
     private Map<Long, TeamMember> membersMap  =   new HashMap<>();
@@ -89,7 +89,7 @@ public class Team  implements Serializable, OwnedEntity {
     
     private void updateMembersMap(){
         members.forEach((member) -> {
-            membersMap.put(member.getId(), member);
+            membersMap.put(member.getMember().getId(), member);
         });
     }
     
