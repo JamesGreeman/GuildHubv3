@@ -126,6 +126,7 @@ public class TeamController extends RESTController {
     }
     
     @RequestMapping(value = "/member/invite", method = RequestMethod.PUT)
+    @ResponseStatus(value = HttpStatus.NO_CONTENT)
     public void acceptInvite(
             final Principal p,
             final @RequestBody InviteRequest r){
@@ -136,6 +137,7 @@ public class TeamController extends RESTController {
     }
     
     @RequestMapping(value = "/member/invite", method = RequestMethod.DELETE)
+    @ResponseStatus(value = HttpStatus.NO_CONTENT)
     public void rejectInvite(
             final Principal p,
             final @RequestBody InviteRequest r){

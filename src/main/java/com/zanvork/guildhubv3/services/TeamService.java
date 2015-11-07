@@ -79,7 +79,7 @@ public class TeamService extends OwnedEntityBackendService<Team>{
                     "Was unable to authenticate user '" + user.getUsername() + "' as the passwords did not match"
             );
         }
-        saveEntity(team);
+        deleteEntity(team);
     }
     
     public Team addMember(long userId, long teamId, long characterId)
@@ -157,6 +157,7 @@ public class TeamService extends OwnedEntityBackendService<Team>{
         TeamMember teamMember   =   new TeamMember();
         teamMember.setMember(character);
         teamMember.setTeam(team);
+        team.addMember(teamMember);
         
         saveEntity(team);
         deleteInvite(invite);
@@ -217,6 +218,7 @@ public class TeamService extends OwnedEntityBackendService<Team>{
     @Override
     public void updateFromBackend(){
         super.updateFromBackend();
+        loadTeamInvitesFromBackend();
     }
 
     @Override
@@ -228,6 +230,20 @@ public class TeamService extends OwnedEntityBackendService<Team>{
         }
         synchronized(entitiesByNameLock){
             entitiesByName.put(entityToKey(entity), entity);
+        }
+    }
+    
+    protected void deleteEntity(Team entity) throws HibernateException{
+        try{
+            dao.delete(entity.getId());
+        } catch (Exception e){
+            System.out.print(e);
+        }
+        synchronized(entitiesLock){
+            entities.remove(entity.getId());
+        }
+        synchronized(entitiesByNameLock){
+            entitiesByName.remove(entityToKey(entity));
         }
     }
 

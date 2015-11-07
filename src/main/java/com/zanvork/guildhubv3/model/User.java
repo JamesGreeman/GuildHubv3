@@ -48,17 +48,17 @@ public class User implements Serializable {
     @Column(name="enabled", nullable = false)
     private boolean enabled;
         
-    @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_role", joinColumns = { @JoinColumn(name = "user_id") }, inverseJoinColumns = { @JoinColumn(name = "role_id") })
     private Set<Role> roles = new HashSet<>();
     
-    @OneToMany(mappedBy = "owner", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval=true)
+    @OneToMany(mappedBy = "owner", fetch = FetchType.EAGER)
     private Set<WarcraftCharacter> characters;
     
-    @OneToMany(mappedBy = "owner", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval=true)
+    @OneToMany(mappedBy = "owner", fetch = FetchType.EAGER)
     private Set<Guild> guilds;
     
-    @OneToMany(mappedBy = "owner", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval=true)
+    @OneToMany(mappedBy = "owner", fetch = FetchType.EAGER)
     private Set<Team> teams;
     
     @OneToMany(mappedBy = "currentOwnerId", fetch = FetchType.EAGER)
