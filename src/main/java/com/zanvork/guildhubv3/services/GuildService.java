@@ -132,12 +132,13 @@ public class GuildService extends OwnedEntityBackendService<Guild>{
         Map<String, WarcraftCharacter> guildMembers   =   new HashMap<>();
         
         //dissassociate existing members of the guild
+        guild.getMembers().stream()
+                .forEach((member) -> {
+                    member.setGuild(null);
+                    guildMembers.put(characterService.entityToKey(member), member);
+                });
+            
         if (updateMembers){
-            guild.getMembers().stream()
-                    .forEach((member) -> {
-                        member.setGuildId(-1);
-                        guildMembers.put(characterService.entityToKey(member), member);
-                    });
             guild.getMembers().clear();
         }
         //find the leader and if update members is set then populate a new list
@@ -149,13 +150,14 @@ public class GuildService extends OwnedEntityBackendService<Guild>{
                 String name     =   characterData.getName();
                 String realm    =   characterData.getRealm();
                 String key      =   WarcraftCharacter.characterNameRealmRegionToKey(name, realm, guild.getRealm().getRegionName());
-                WarcraftCharacter character;
-                guildMembers.remove(key);
-                if (characterService.entityExists(key)){
-                    character   =   characterService.getCharacter(name, realm, region);
-                } else {
-                    character   =   characterService.createCharacter(name, realm, region);
-                } 
+                WarcraftCharacter character =   guildMembers.remove(key);
+                if (character == null){
+                    if (characterService.entityExists(key)){
+                        character   =   characterService.getCharacter(name, realm, region);
+                    } else {
+                        character   =   characterService.createCharacter(name, realm, region);
+                    } 
+                }
                 if (character != null){
                     character.setGuildRank(memberData.getRank());
                     guild.addMember(character);

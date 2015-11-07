@@ -236,7 +236,7 @@ public abstract class OwnedEntityBackendService<E extends OwnedEntity> implement
         String errorText    =   "Cannot update entity with key '" + entityToKey(entity) + "'.";
         
         //Take ownership of a entity when updating it if not already owned.
-        if (entity.getOwner() == null && entity.isOwnershipLocked()){
+        if (entity.getOwner() == null && !entity.isOwnershipLocked()){
             entity.setOwner(user);
         }
         //Check the entity is not read only

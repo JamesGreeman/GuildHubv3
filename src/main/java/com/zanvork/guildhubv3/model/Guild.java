@@ -24,7 +24,7 @@ import lombok.EqualsAndHashCode;
  */
 
 @Data
-@EqualsAndHashCode(callSuper=false)
+@EqualsAndHashCode(exclude={"owner","members"}, callSuper=false)
 @Entity
 @Table(uniqueConstraints=@UniqueConstraint(columnNames={"name", "realm"}))
 public class Guild implements Serializable, OwnedEntity {
@@ -40,7 +40,7 @@ public class Guild implements Serializable, OwnedEntity {
     @JoinColumn(nullable = false)
     private Realm realm;
     
-    @OneToMany(mappedBy = "guildId", fetch = FetchType.EAGER, cascade = CascadeType.MERGE)
+    @OneToMany(mappedBy = "guild", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     private List<WarcraftCharacter> members  =   new ArrayList<>();
     
     private long leaderId;
@@ -54,7 +54,7 @@ public class Guild implements Serializable, OwnedEntity {
     
     public void addMember(WarcraftCharacter member){
         members.add(member);
-        member.setGuildId(id);
+        member.setGuild(this);
     }
    
 }

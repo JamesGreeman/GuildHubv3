@@ -25,7 +25,9 @@ import lombok.ToString;
  */
 
 @Data
-@EqualsAndHashCode(callSuper=false)
+@EqualsAndHashCode(exclude={"guild", "owner", "items"}, callSuper=false)
+@ToString(exclude={"guild"})
+@JsonIgnoreProperties({"guild"})
 @Entity
 @Table(uniqueConstraints=@UniqueConstraint(columnNames={"name", "realm"}))
 public class WarcraftCharacter  implements Serializable, OwnedEntity {
@@ -55,7 +57,8 @@ public class WarcraftCharacter  implements Serializable, OwnedEntity {
     @OneToMany(mappedBy = "owner", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval=true)
     private List<CharacterItem> items;
     
-    private long guildId;
+    @ManyToOne
+    private Guild guild;
     
     private int guildRank;
     
