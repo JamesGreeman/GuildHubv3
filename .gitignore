@@ -1,4 +1,7 @@
 # Created by https://www.gitignore.io/api/netbeans,node
+### Ptoject ###
+keystore.p12
+application.properties
 
 ### NetBeans ###
 nbproject/private/
