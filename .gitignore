@@ -7,3 +7,8 @@ tmp
 .idea
 
 npm-debug.log
+
+.travis.yaml
+.bowerrc
+.jshintrc
+browser-bundle.js
